@@ -42,6 +42,15 @@ public class OptionsData {
         this.stock = new StockQuote(stock);
         this.calls = getOptionLines(calls);
         this.puts = getOptionLines(puts);
+
+        double timeToExpiry = BlackScholesPricer.timeToExpiry(expiry);
+        for(OptionLine call : this.calls) {
+            call.calculatedIV = pricer.calculateCallImpliedVol(call.getTheoPrice(), this.stock.regularMarketPrice, call.strike, timeToExpiry);
+        }
+
+        for(OptionLine put : this.puts) {
+            put.calculatedIV = pricer.calculatePutImpliedVol(put.getTheoPrice(), this.stock.regularMarketPrice, put.strike, timeToExpiry);
+        }
     }
 
     OptionLine[] getOptionLines(JSONArray optionsArray) {
@@ -53,6 +62,20 @@ public class OptionsData {
         }
 
         return options;
+    }
+
+    OptionLine getOptionLine(boolean isCall, double strike) {
+        OptionLine[] lines = isCall ? calls : puts;
+        for(int i = 0; i < lines.length; i++) {
+            if(isCloseTo(lines[i].strike, strike)) return lines[i];
+        }
+
+        return null;
+    }
+
+    private static final double PRECISION = 0.00001;
+    boolean isCloseTo(double a, double b) {
+        return Math.abs(a - b) < PRECISION;
     }
 
     static final String EXPIRY_TIME = "T16:00";
@@ -70,12 +93,14 @@ public class OptionsData {
         catch(ParseException e) {
             return 0;
         }
-
     }
 
     public static void main(String[] args) throws IOException, JSONException {
         OptionsData od = new OptionsData();
         od.getData("2016-12-30");
+        for (OptionLine o : od.calls) {
+            System.out.printf("%.2f: %.2f\n", o.strike, o.lastPrice);
+        }
         Date d = new Date(epochTime("2016-12-30") *1000);
         System.out.println(d);
     }

@@ -1,6 +1,7 @@
 package saivenky.optionpricer;
 
 import android.app.Activity;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -11,7 +12,13 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.StringReader;
+
 public class MainActivity extends AppCompatActivity {
+
+    private EditText mTrades;
+    private Button mPnlButton;
+    private TextView mPnlView;
 
     private EditText mExpiry;
     private EditText mUnderlying;
@@ -34,6 +41,16 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mTrades = (EditText) findViewById(R.id.trades);
+        mPnlView = (TextView) findViewById(R.id.pnl_view);
+        mPnlButton = (Button) findViewById(R.id.pnl_button);
+        mPnlButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                readTradesAndCalculatePnl();
+            }
+        });
 
         mExpiry = (EditText) findViewById(R.id.days_to_expiry);
         mUnderlying = (EditText) findViewById(R.id.underlying);
@@ -126,6 +143,61 @@ public class MainActivity extends AppCompatActivity {
                 } catch(Exception e) {}
             }
         });
+    }
+
+    private void readTradesAndCalculatePnl() {
+        final String tradesText = mTrades.getText().toString();
+
+        AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
+            @Override
+            protected String doInBackground(Void... voids) {
+                try {
+                    StringReader reader = new StringReader(tradesText);
+                    TradeSetReader tsr = new TradeSetReader();
+                    StringBuilder sb = new StringBuilder();
+                    TradeSet ts = tsr.create(reader);
+
+                    OptionsData data = new OptionsData();
+                    data.getData("2016-12-30");
+
+                    double delta = 0;
+
+                    double underlying = data.stock.regularMarketPrice;
+                    for (ITrade trade : ts.trades) {
+                        if (trade instanceof OptionTrade) {
+                            OptionTrade optionTrade = (OptionTrade) trade;
+                            OptionLine line = data.getOptionLine(optionTrade.isCall, optionTrade.strike);
+                            BlackScholesPrice bsp = optionTrade.getTheo(underlying, line.calculatedIV);
+                            sb.append(String.format("%.2f last(%.2f) (%.2f %.2f): %.4f %.4f\n", line.strike, line.lastPrice, line.bid, line.ask, line.calculatedIV, bsp.delta));
+                            delta += bsp.delta;
+                        } else {
+                            StockTrade stockTrade = (StockTrade) trade;
+                            delta += stockTrade.getTheo(underlying, 0).delta;
+                        }
+                    }
+
+                    sb.append("\n---------------------\n");
+                    sb.append(ts.describePnL());
+                    sb.append(String.format("\nDelta: %.4f\n", delta));
+                    sb.append(ts.describeAtPrice(underlying, ts.getPnl(underlying)));
+                    return sb.toString();
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(String result) {
+                mPnlView.setText(result);
+            }
+
+        };
+
+        task.execute();
+
     }
 
     private int getDecimals(double number) {

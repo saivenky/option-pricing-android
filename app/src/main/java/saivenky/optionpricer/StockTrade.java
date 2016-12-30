@@ -43,4 +43,12 @@ public class StockTrade implements ITrade {
         String simple = toString();
         return simple;
     }
+
+    @Override
+    public BlackScholesPrice getTheo(double underlying, double impliedVol) {
+        BlackScholesPrice bsp = new BlackScholesPrice();
+        bsp.delta = quantity;
+        bsp.price = quantity * underlying;
+        return bsp;
+    }
 }

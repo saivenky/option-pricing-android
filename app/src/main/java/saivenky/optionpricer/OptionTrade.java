@@ -1,6 +1,8 @@
 package saivenky.optionpricer;
 
 public class OptionTrade implements ITrade {
+    private static final BlackScholesPricer pricer = new BlackScholesPricer();
+
     static final double COMMISSION_COST = 6.95;
     static final double EA_COST = 6.95;
     static final double PER_CONTRACT_COST = 0.75;
@@ -37,6 +39,26 @@ public class OptionTrade implements ITrade {
         return Math.max(0, sign * value * getSize());
     }
 
+    private double getExecutionCost(double underlying) {
+        if(isCall) {
+            if(isBuy && underlying >= strike) {
+                return EA_COST;
+            }
+            if(!isBuy && underlying >= strike) {
+                return EA_COST;
+            }
+        }
+        if(!isCall) {
+            if(isBuy && underlying <= strike) {
+                return EA_COST;
+            }
+            if(!isBuy && underlying <= strike) {
+                return EA_COST;
+            }
+        }
+        return 0;
+    }
+
     double getInitialPnL() {
         double sign = isBuy ? -1 : 1;
         double value = sign * price * getSize();
@@ -45,7 +67,7 @@ public class OptionTrade implements ITrade {
 
     public double getPnL(double underlying) {
         double sign = isBuy ? 1 : -1;
-        return getInitialPnL() + sign*getValue(underlying);
+        return getInitialPnL() + sign*getValue(underlying) - getExecutionCost(underlying);
     }
 
     @Override
@@ -76,6 +98,15 @@ public class OptionTrade implements ITrade {
         double minEaUnderlyingPrice = strike + callSign * EA_COST / getSize();
         return String.format("%s\nInitial PnL: %.2f\nBreakeven Price: %.2f\nBreakeven OptionTrade Price: %.2f\nBreakeven EA Price (min %.2f): %.2f",
                 simple, initialCost, breakevenUnderlyingPrice, getTradeCloseCostBasis(), minEaUnderlyingPrice, breakevenEaUnderlyingPrice);
+    }
+
+    public BlackScholesPrice getTheo(double underlying, double impliedVol) {
+        BlackScholesPrice bsp = this.isCall ?
+                pricer.callPrice(underlying, strike, BlackScholesPricer.timeToExpiry(expiry), impliedVol) :
+                pricer.putPrice(underlying, strike, BlackScholesPricer.timeToExpiry(expiry), impliedVol);
+        double sign = (isBuy) ? 1 : -1;
+        bsp.delta *= sign * getSize();
+        return bsp;
     }
 
     void describeRisk() {

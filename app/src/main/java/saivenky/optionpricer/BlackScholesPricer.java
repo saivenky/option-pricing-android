@@ -56,11 +56,24 @@ public class BlackScholesPricer {
         double callPrice = callPrice(underlying, strike, timeToExpiry, vol).price;
 
         while (Math.abs(actualCallPrice - callPrice) > PRECISION) {
+            if(vol == 0) return vol;
             if (actualCallPrice < callPrice) {
                 vol -= step;
                 double newCallPrice = callPrice(underlying, strike, timeToExpiry, vol).price;
                 if (actualCallPrice > newCallPrice || Double.isNaN(newCallPrice)) {
                     vol += step;
+                    step *= 0.1;
+                    callPrice = callPrice(underlying, strike, timeToExpiry, vol).price;
+                }
+                else {
+                    callPrice = newCallPrice;
+                }
+            }
+            else if (actualCallPrice > callPrice) {
+                vol += step;
+                double newCallPrice = callPrice(underlying, strike, timeToExpiry, vol).price;
+                if (actualCallPrice < newCallPrice || Double.isNaN(newCallPrice)) {
+                    vol -= step;
                     step *= 0.1;
                     callPrice = callPrice(underlying, strike, timeToExpiry, vol).price;
                 }
@@ -78,11 +91,24 @@ public class BlackScholesPricer {
         double putPrice = putPrice(underlying, strike, timeToExpiry, vol).price;
 
         while (Math.abs(actualPutPrice - putPrice) > PRECISION) {
+            if(vol == 0) return vol;
             if (actualPutPrice < putPrice) {
                 vol -= step;
                 double newPutPrice = putPrice(underlying, strike, timeToExpiry, vol).price;
                 if (actualPutPrice > newPutPrice || Double.isNaN(newPutPrice)) {
                     vol += step;
+                    step *= 0.1;
+                    putPrice = putPrice(underlying, strike, timeToExpiry, vol).price;
+                }
+                else {
+                    putPrice = newPutPrice;
+                }
+            }
+            else if (actualPutPrice > putPrice) {
+                vol += step;
+                double newPutPrice = putPrice(underlying, strike, timeToExpiry, vol).price;
+                if (actualPutPrice < newPutPrice || Double.isNaN(newPutPrice)) {
+                    vol -= step;
                     step *= 0.1;
                     putPrice = putPrice(underlying, strike, timeToExpiry, vol).price;
                 }
@@ -106,6 +132,10 @@ public class BlackScholesPricer {
         } catch (ParseException e) {
             return 0;
         }
+    }
+
+    public static double timeToExpiry(String expiry) {
+        return daysToExpiry(expiry) / TRADING_DAYS;
     }
 
     public static void main(String[] args) throws ParseException {

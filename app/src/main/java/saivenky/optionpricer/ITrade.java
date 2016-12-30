@@ -7,4 +7,5 @@ public interface ITrade {
     double getStrike();
     double getBreakevenUnderlyingPrice();
     String fullDescription();
+    BlackScholesPrice getTheo(double underlying, double impliedVol);
 }

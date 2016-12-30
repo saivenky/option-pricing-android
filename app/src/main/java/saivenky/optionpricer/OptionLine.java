@@ -13,6 +13,7 @@ public class OptionLine {
     double bid;
     double ask;
     double impliedVolatility;
+    double calculatedIV;
 
     public OptionLine(JSONObject object) {
         symbol = object.getString("contractSymbol");
@@ -21,6 +22,11 @@ public class OptionLine {
         bid = object.getDouble("bid");
         ask = object.getDouble("ask");
         impliedVolatility = object.getDouble("impliedVolatility");
+    }
+
+    double getTheoPrice() {
+        //return lastPrice;
+        return (bid + ask) / 2;
     }
 
     @Override
