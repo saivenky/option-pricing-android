@@ -1,8 +1,10 @@
-package saivenky.optionpricer;
+package saivenky.trading;
+
+import saivenky.pricing.IPricer;
+import saivenky.pricing.Theo;
+import saivenky.pricing.BlackScholesPricer;
 
 public class OptionTrade implements ITrade {
-    private static final BlackScholesPricer pricer = new BlackScholesPricer();
-
     static final double COMMISSION_COST = 6.95;
     static final double EA_COST = 6.95;
     static final double PER_CONTRACT_COST = 0.75;
@@ -16,7 +18,7 @@ public class OptionTrade implements ITrade {
     int quantity;
     String expiry;
 
-    double getSize() {
+    double getTotalQuantity() {
         return quantity * CONTRACT_SIZE;
     }
     double getTradeCost() {
@@ -28,7 +30,7 @@ public class OptionTrade implements ITrade {
     }
 
     double getTradeCloseCostBasis() {
-        double tradesCost = (getTradeCost()*2)/getSize();
+        double tradesCost = (getTradeCost()*2)/ getTotalQuantity();
         double sign = (isBuy) ? 1 : -1;
         return price + sign*tradesCost;
     }
@@ -36,7 +38,7 @@ public class OptionTrade implements ITrade {
     public double getValue(double underlying) {
         double value = underlying - strike;
         double sign = (isCall) ? 1 : -1;
-        return Math.max(0, sign * value * getSize());
+        return Math.max(0, sign * value * getTotalQuantity());
     }
 
     private double getExecutionCost(double underlying) {
@@ -61,7 +63,7 @@ public class OptionTrade implements ITrade {
 
     double getInitialPnL() {
         double sign = isBuy ? -1 : 1;
-        double value = sign * price * getSize();
+        double value = sign * price * getTotalQuantity();
         return value - getTradeCost();
     }
 
@@ -79,7 +81,7 @@ public class OptionTrade implements ITrade {
         double buySign = isBuy ? 1 : -1;
         double callSign = isCall ? 1 : -1;
         double profitSign = buySign * callSign;
-        return strike - (profitSign*getInitialPnL())  / getSize();
+        return strike - (profitSign*getInitialPnL())  / getTotalQuantity();
     }
 
     @Override
@@ -93,20 +95,19 @@ public class OptionTrade implements ITrade {
         double buySign = isBuy ? 1 : -1;
         double callSign = isCall ? 1 : -1;
         double profitSign = buySign * callSign;
-        double breakevenUnderlyingPrice = strike - (profitSign*initialCost)  / getSize();
-        double breakevenEaUnderlyingPrice = strike - (profitSign*(initialCost - getEaCost())) / getSize();
-        double minEaUnderlyingPrice = strike + callSign * EA_COST / getSize();
+        double breakevenUnderlyingPrice = strike - (profitSign*initialCost)  / getTotalQuantity();
+        double breakevenEaUnderlyingPrice = strike - (profitSign*(initialCost - getEaCost())) / getTotalQuantity();
+        double minEaUnderlyingPrice = strike + callSign * EA_COST / getTotalQuantity();
         return String.format("%s\nInitial PnL: %.2f\nBreakeven Price: %.2f\nBreakeven OptionTrade Price: %.2f\nBreakeven EA Price (min %.2f): %.2f",
                 simple, initialCost, breakevenUnderlyingPrice, getTradeCloseCostBasis(), minEaUnderlyingPrice, breakevenEaUnderlyingPrice);
     }
 
-    public BlackScholesPrice getTheo(double underlying, double impliedVol) {
-        BlackScholesPrice bsp = this.isCall ?
-                pricer.callPrice(underlying, strike, BlackScholesPricer.timeToExpiry(expiry), impliedVol) :
-                pricer.putPrice(underlying, strike, BlackScholesPricer.timeToExpiry(expiry), impliedVol);
-        double sign = (isBuy) ? 1 : -1;
-        bsp.delta *= sign * getSize();
-        return bsp;
+    public Theo getTheo(double underlying, double impliedVol) {
+        Theo theo = BlackScholesPricer.DEFAULT.getTheo(isCall, underlying, strike, IPricer.timeToExpiry(expiry), impliedVol);
+        int sign = (isBuy) ? 1 : -1;
+        double size = sign * getTotalQuantity();
+        theo.multiplyWithSize(size);
+        return theo;
     }
 
     void describeRisk() {

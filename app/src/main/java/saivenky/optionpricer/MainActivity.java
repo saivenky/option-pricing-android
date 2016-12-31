@@ -14,6 +14,16 @@ import android.widget.TextView;
 
 import java.io.StringReader;
 
+import saivenky.data.Option;
+import saivenky.data.OptionChain;
+import saivenky.pricing.BinomialModelPricer;
+import saivenky.pricing.Theo;
+import saivenky.trading.ITrade;
+import saivenky.trading.OptionTrade;
+import saivenky.trading.StockTrade;
+import saivenky.trading.TradeSet;
+import saivenky.trading.TradeSetReader;
+
 public class MainActivity extends AppCompatActivity {
 
     private EditText mTrades;
@@ -157,29 +167,11 @@ public class MainActivity extends AppCompatActivity {
                     StringBuilder sb = new StringBuilder();
                     TradeSet ts = tsr.create(reader);
 
-                    OptionsData data = new OptionsData();
-                    data.getData("2016-12-30");
+                    OptionChain optionChain = new OptionChain();
+                    optionChain.getData("2016-12-30");
 
-                    double delta = 0;
-
-                    double underlying = data.stock.regularMarketPrice;
-                    for (ITrade trade : ts.trades) {
-                        if (trade instanceof OptionTrade) {
-                            OptionTrade optionTrade = (OptionTrade) trade;
-                            OptionLine line = data.getOptionLine(optionTrade.isCall, optionTrade.strike);
-                            BlackScholesPrice bsp = optionTrade.getTheo(underlying, line.calculatedIV);
-                            sb.append(String.format("%.2f last(%.2f) (%.2f %.2f): %.4f %.4f\n", line.strike, line.lastPrice, line.bid, line.ask, line.calculatedIV, bsp.delta));
-                            delta += bsp.delta;
-                        } else {
-                            StockTrade stockTrade = (StockTrade) trade;
-                            delta += stockTrade.getTheo(underlying, 0).delta;
-                        }
-                    }
-
-                    sb.append("\n---------------------\n");
                     sb.append(ts.describePnL());
-                    sb.append(String.format("\nDelta: %.4f\n", delta));
-                    sb.append(ts.describeAtPrice(underlying, ts.getPnl(underlying)));
+                    sb.append(ts.describeTheo(optionChain));
                     return sb.toString();
                 }
                 catch (Exception e) {

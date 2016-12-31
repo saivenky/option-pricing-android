@@ -1,4 +1,4 @@
-package saivenky.optionpricer;
+package saivenky.data;
 
 import java.io.BufferedReader;
 import java.io.IOException;

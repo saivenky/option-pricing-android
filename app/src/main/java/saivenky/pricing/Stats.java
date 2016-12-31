@@ -1,4 +1,4 @@
-package saivenky.optionpricer;
+package saivenky.pricing;
 
 public class Stats {
     public double average;

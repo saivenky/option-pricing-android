@@ -1,4 +1,4 @@
-package saivenky.optionpricer;
+package saivenky.pricing;
 
 /**
  * Created by saivenky on 12/29/16.

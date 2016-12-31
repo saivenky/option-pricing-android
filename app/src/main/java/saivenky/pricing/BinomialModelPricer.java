@@ -1,4 +1,4 @@
-package saivenky.optionpricer;
+package saivenky.pricing;
 
 public class BinomialModelPricer {
     private static final double INTEREST = 0;

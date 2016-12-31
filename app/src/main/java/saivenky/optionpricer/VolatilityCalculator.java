@@ -1,5 +1,9 @@
 package saivenky.optionpricer;
 
+import saivenky.data.HistoricalPrices;
+import saivenky.pricing.Stats;
+import saivenky.pricing.StatsCalculator;
+
 public class VolatilityCalculator {
     private static final double TRADING_DAYS = 254.;
     private final StatsCalculator statsCalculator;

@@ -1,16 +1,23 @@
-package saivenky.optionpricer;
+package saivenky.trading;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeSet;
 
+import saivenky.data.Option;
+import saivenky.data.OptionChain;
+import saivenky.pricing.Theo;
+
 public class TradeSet {
-    List<ITrade> trades = new ArrayList<>();
-    TreeSet<Double> importantPrices = new TreeSet<>();
+    List<ITrade> trades;
+    TreeSet<Double> importantPrices;
 
     public TradeSet() {
+        trades = new ArrayList<>();
+        importantPrices = new TreeSet<>();
     }
+
     void addTrade(ITrade trade) {
         importantPrices.add(trade.getStrike());
         trades.add(trade);
@@ -24,24 +31,24 @@ public class TradeSet {
         return pnl;
     }
 
-    String describeAtPrice(double underlying, double pnl) {
-        return String.format("%.2f: %.2f\n", underlying, pnl);
+    String createPnlLine(double underlying, double pnl) {
+        return String.format("%4.2f: %4.2f\n", underlying, pnl);
     }
 
-    String describePnL() {
+    public String describePnL() {
         StringBuilder builder = new StringBuilder();
         double prevPrice = 0.0;
         double prevPnl = getPnl(0.0);
-        builder.append(describeAtPrice(prevPrice, prevPnl));
+        builder.append(createPnlLine(prevPrice, prevPnl));
 
         for(double price : importantPrices) {
             double pnl = getPnl(price);
             if((prevPnl < 0 && pnl > 0) || (prevPnl > 0 && pnl < 0)) {
                 double breakeven = calculateIntercept(price, pnl, prevPrice, prevPnl);
-                builder.append(describeAtPrice(breakeven, getPnl(breakeven)));
+                builder.append(createPnlLine(breakeven, getPnl(breakeven)));
             }
 
-            builder.append(describeAtPrice(price, pnl));
+            builder.append(createPnlLine(price, pnl));
             prevPrice = price;
             prevPnl = pnl;
         }
@@ -56,11 +63,42 @@ public class TradeSet {
         return builder.toString();
     }
 
+    public String describeTheo(OptionChain optionChain) {
+        double underlying = optionChain.stock.regularMarketPrice;
+        Theo totalTheo = new Theo();
+        for(ITrade trade : trades) {
+            Theo theo;
+            if(trade instanceof OptionTrade) {
+                OptionTrade optionTrade = (OptionTrade) trade;
+                if (optionChain.isExpired) {
+                    theo = optionTrade.getTheo(underlying, 0);
+                }
+                else {
+                    Option option = optionChain.getOption(optionTrade.isCall, optionTrade.strike);
+                    theo = option.theo;
+                }
+            }
+            else {
+                StockTrade stockTrade = (StockTrade) trade;
+                theo = stockTrade.getTheo(underlying, 0);
+            }
+
+            totalTheo.add(theo);
+        }
+
+        return totalTheo.prettyString() +
+                String.format("\nCurrent Underlying: %.2f\nCurrent PnL: %.2f\n", underlying, getPnl(underlying));
+    }
+
+    public double calculateIntercept(double price1, double pnl1, double price2, double pnl2) {
+        double slope = ((pnl2 - pnl1) / (price2 - price1));
+        return -pnl1/slope + price1;
+    }
+
     public static void main(String[] args) throws IOException {
-        System.out.println("starting");
-        OptionsData data = new OptionsData();
-        data.getData("2016-12-30");
-        System.out.println("calculating pnl");
+        OptionChain optionChain = new OptionChain();
+        optionChain.getData("2016-12-30");
+
         TradeSet ts = new TradeSet();
         ts.addTrade(OptionTrade.parse("+3 x 56 C @ 1.11 2016-12-30"));
         ts.addTrade(OptionTrade.parse("+6 x 56 P @ 0.13 2016-12-30"));
@@ -91,34 +129,7 @@ public class TradeSet {
         //Hypothetical trades
         //ts.addTrade(StockTrade.parse("100 @ 55.80"));
 
-
-        double delta = 0;
-        data.stock.regularMarketPrice = 55.55;
-        double underlying = data.stock.regularMarketPrice;
-        for(ITrade trade : ts.trades) {
-            System.out.println("\n"+trade.fullDescription());
-            if(trade instanceof OptionTrade) {
-                OptionTrade optionTrade = (OptionTrade) trade;
-                OptionLine line = data.getOptionLine(optionTrade.isCall, optionTrade.strike);
-                BlackScholesPrice bsp = optionTrade.getTheo(underlying, line.calculatedIV);
-                System.out.printf("%.2f last(%.2f) (%.2f %.2f): %.4f %.4f\n", line.strike, line.lastPrice, line.bid, line.ask, line.calculatedIV, bsp.delta);
-                delta += bsp.delta;
-            }
-            else {
-                StockTrade stockTrade = (StockTrade) trade;
-                delta += stockTrade.getTheo(underlying, 0).delta;
-            }
-        }
-
-
-        System.out.println("\n---------------------");
         System.out.println(ts.describePnL());
-        System.out.printf("\nDelta: %.4f\n", delta);
-        System.out.println(ts.describeAtPrice(underlying, ts.getPnl(underlying)));
-    }
-
-    public double calculateIntercept(double price1, double pnl1, double price2, double pnl2) {
-        double slope = ((pnl2 - pnl1) / (price2 - price1));
-        return -pnl1/slope + price1;
+        System.out.println(ts.describeTheo(optionChain));
     }
 }

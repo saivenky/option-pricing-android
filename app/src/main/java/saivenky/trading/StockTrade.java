@@ -1,4 +1,6 @@
-package saivenky.optionpricer;
+package saivenky.trading;
+
+import saivenky.pricing.Theo;
 
 public class StockTrade implements ITrade {
 
@@ -45,10 +47,10 @@ public class StockTrade implements ITrade {
     }
 
     @Override
-    public BlackScholesPrice getTheo(double underlying, double impliedVol) {
-        BlackScholesPrice bsp = new BlackScholesPrice();
-        bsp.delta = quantity;
-        bsp.price = quantity * underlying;
-        return bsp;
+    public Theo getTheo(double underlying, double impliedVol) {
+        Theo theo = new Theo();
+        theo.delta = 1;
+        theo.multiplyWithSize(quantity);
+        return theo;
     }
 }
