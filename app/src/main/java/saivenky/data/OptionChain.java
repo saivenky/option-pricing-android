@@ -29,19 +29,28 @@ public class OptionChain {
         return String.format("https://query2.finance.yahoo.com/v7/finance/options/%s?formatted=false&lang=en-US&region=US&straddle=false&date=%d", stockSymbol, epochTime);
     }
 
-    public void getData(String expiry) throws IOException, JSONException {
+    private StringBuilder getRaw(String expiry) {
+        String urlPath = createUrl("SBUX", expiry);
+
+        StringBuilder sb = new StringBuilder();
+
+        try {
+            URL url = new URL(urlPath);
+            BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
+            String line;
+            while ((line = br.readLine()) != null) {
+                sb.append(line);
+            }
+        }
+        catch(IOException e) {}
+        return sb;
+    }
+
+    public void getData(String expiry) {
         isExpired = IPricer.timeToExpiry(expiry) < 0;
 
         this.expiry = expiry;
-        String urlPath = createUrl("SBUX", expiry);
-
-        URL url = new URL(urlPath);
-        BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while((line = br.readLine()) != null) {
-            sb.append(line);
-        }
+        StringBuilder sb = getRaw(expiry);
 
         JSONObject jsonObject = new JSONObject(sb.toString());
         JSONArray result = jsonObject.getJSONObject("optionChain").getJSONArray("result");

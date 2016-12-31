@@ -7,25 +7,43 @@ import java.util.TreeSet;
 
 import saivenky.data.Option;
 import saivenky.data.OptionChain;
+import saivenky.data.OptionChainRetriever;
 import saivenky.pricing.Theo;
 
 public class TradeSet {
-    List<ITrade> trades;
+    List<OptionTrade> optionTrades;
+    List<StockTrade> stockTrades;
     TreeSet<Double> importantPrices;
 
     public TradeSet() {
-        trades = new ArrayList<>();
+        optionTrades = new ArrayList<>();
+        stockTrades = new ArrayList<>();
         importantPrices = new TreeSet<>();
     }
 
     void addTrade(ITrade trade) {
+        if (trade instanceof OptionTrade) {
+            addOptionTrade((OptionTrade) trade);
+        }
+        else addStockTrade((StockTrade) trade);
+    }
+    void addOptionTrade(OptionTrade trade) {
         importantPrices.add(trade.getStrike());
-        trades.add(trade);
+        OptionChainRetriever.DEFAULT.addExpiry(trade.expiry);
+        optionTrades.add(trade);
+    }
+
+    void addStockTrade(StockTrade trade) {
+        importantPrices.add(trade.getStrike());
+        stockTrades.add(trade);
     }
 
     double getPnl(double underlying) {
         double pnl = 0.0;
-        for(ITrade trade : trades) {
+        for(OptionTrade trade : optionTrades) {
+            pnl += trade.getPnL(underlying);
+        }
+        for(StockTrade trade : stockTrades) {
             pnl += trade.getPnL(underlying);
         }
         return pnl;
@@ -63,26 +81,25 @@ public class TradeSet {
         return builder.toString();
     }
 
-    public String describeTheo(OptionChain optionChain) {
-        double underlying = optionChain.stock.regularMarketPrice;
+    public String describeTheo() {
+        double underlying = OptionChainRetriever.DEFAULT.underlying;
         Theo totalTheo = new Theo();
-        for(ITrade trade : trades) {
+        for(OptionTrade optionTrade : optionTrades) {
             Theo theo;
-            if(trade instanceof OptionTrade) {
-                OptionTrade optionTrade = (OptionTrade) trade;
-                if (optionChain.isExpired) {
-                    theo = optionTrade.getTheo(underlying, 0);
-                }
-                else {
-                    Option option = optionChain.getOption(optionTrade.isCall, optionTrade.strike);
-                    theo = option.theo;
-                }
+            OptionChain optionChain = OptionChainRetriever.DEFAULT.getOptionChain(optionTrade.expiry);
+            if (optionChain.isExpired) {
+                theo = optionTrade.getTheo(underlying, 0);
             }
             else {
-                StockTrade stockTrade = (StockTrade) trade;
-                theo = stockTrade.getTheo(underlying, 0);
+                Option option = optionChain.getOption(optionTrade.isCall, optionTrade.strike);
+                theo = option.theo;
             }
 
+            totalTheo.add(theo);
+        }
+
+        for(StockTrade stockTrade : stockTrades) {
+            Theo theo = stockTrade.getTheo(underlying, 0);
             totalTheo.add(theo);
         }
 
@@ -100,36 +117,12 @@ public class TradeSet {
         optionChain.getData("2016-12-30");
 
         TradeSet ts = new TradeSet();
-        ts.addTrade(OptionTrade.parse("+3 x 56 C @ 1.11 2016-12-30"));
-        ts.addTrade(OptionTrade.parse("+6 x 56 P @ 0.13 2016-12-30"));
-        ts.addTrade(OptionTrade.parse("-3 x 57.5 C @ 0.22 2016-12-30"));
-        ts.addTrade(StockTrade.parse("50 @ 56.32"));
-        ts.addTrade(StockTrade.parse("50 @ 56.48"));
+        ts.addTrade(OptionTrade.parse("-3 x 56 C @ 0.3 2017-01-06"));
+        ts.addTrade(OptionTrade.parse("+10 x 55.5 P @ 0.13 2017-01-06"));
+        ts.addTrade(StockTrade.parse("300 @ 55.5"));
 
-
-        ts.addTrade(StockTrade.parse("100 @ 56.92"));
-
-        /*
-        // Don't include these
-        ts.addTrade(StockTrade.parse("30 @ 57.80"));
-        ts.addTrade(StockTrade.parse("20 @ 38.05"));
-        ts.addTrade(StockTrade.parse("20 @ 38.25"));
-        ts.addTrade(StockTrade.parse("20 @ 37.45"));
-        ts.addTrade(StockTrade.parse("10 @ 33.82"));
-        //
-
-        */
-        ts.addTrade(StockTrade.parse("350 @ 55.96"));
-        ts.addTrade(StockTrade.parse("-280 @ 56.00"));
-
-        ts.addTrade(StockTrade.parse("150 @ 55.82"));
-        ts.addTrade(StockTrade.parse("100 @ 55.75"));
-        ts.addTrade(StockTrade.parse("80 @ 55.52"));
-
-        //Hypothetical trades
-        //ts.addTrade(StockTrade.parse("100 @ 55.80"));
-
+        OptionChainRetriever.DEFAULT.retrieveDataForAll();
         System.out.println(ts.describePnL());
-        System.out.println(ts.describeTheo(optionChain));
+        System.out.println(ts.describeTheo());
     }
 }

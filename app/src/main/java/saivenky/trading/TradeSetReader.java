@@ -39,6 +39,6 @@ public class TradeSetReader {
         optionChain.getData("2016-12-30");
 
         System.out.println(ts.describePnL());
-        System.out.println(ts.describeTheo(optionChain));
+        System.out.println(ts.describeTheo());
     }
 }

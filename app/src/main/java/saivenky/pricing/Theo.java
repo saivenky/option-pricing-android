@@ -21,6 +21,7 @@ public class Theo {
         delta *= size;
         gamma *= size;
         vega *= size;
+        theta *= size;
     }
 
     public void add(Theo theo) {
@@ -28,6 +29,7 @@ public class Theo {
         delta += theo.delta;
         gamma += theo.gamma;
         vega += theo.vega;
+        theta += theo.theta;
     }
 
     private static String SEPARATOR = "-------------------";

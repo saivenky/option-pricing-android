@@ -16,6 +16,7 @@ import java.io.StringReader;
 
 import saivenky.data.Option;
 import saivenky.data.OptionChain;
+import saivenky.data.OptionChainRetriever;
 import saivenky.pricing.BinomialModelPricer;
 import saivenky.pricing.Theo;
 import saivenky.trading.ITrade;
@@ -167,11 +168,9 @@ public class MainActivity extends AppCompatActivity {
                     StringBuilder sb = new StringBuilder();
                     TradeSet ts = tsr.create(reader);
 
-                    OptionChain optionChain = new OptionChain();
-                    optionChain.getData("2016-12-30");
-
+                    OptionChainRetriever.DEFAULT.retrieveDataForAll();
                     sb.append(ts.describePnL());
-                    sb.append(ts.describeTheo(optionChain));
+                    sb.append(ts.describeTheo());
                     return sb.toString();
                 }
                 catch (Exception e) {
