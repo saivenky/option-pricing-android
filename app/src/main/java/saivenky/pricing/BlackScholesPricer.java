@@ -2,15 +2,12 @@ package saivenky.pricing;
 
 import java.text.ParseException;
 
-import saivenky.trading.ITrade;
-
 /**
  * Created by saivenky on 12/29/16.
  */
 
 public class BlackScholesPricer extends IPricer {
     private static final double RISK_FREE_INTEREST = Math.pow(0.008, 1);
-    private static final double PRECISION = 0.00001;
     private static final double IMPLIED_VOL_PRECISION = 1e-6;
     private static final int MAX_ITERATIONS = 10;
     public static IPricer DEFAULT = new BlackScholesPricer(RISK_FREE_INTEREST);
@@ -47,6 +44,14 @@ public class BlackScholesPricer extends IPricer {
 
         theo.gamma = NormalDist.pdf(d1) / (spot * sigma * Math.sqrt(timeToExpiry));
         theo.vega = spot * NormalDist.pdf(d1) * Math.sqrt(timeToExpiry);
+        theo.theta = -spot * NormalDist.pdf(d1) * sigma / (2 * Math.sqrt(timeToExpiry));
+        double thetaDiscount = r * strike * Math.exp(-r*timeToExpiry);
+        if(isCall) {
+            theo.theta -= thetaDiscount * NormalDist.cdf(d2);
+        }
+        else {
+            theo.theta += thetaDiscount * NormalDist.cdf(-d2);
+        }
 
         return theo;
     }
@@ -60,7 +65,6 @@ public class BlackScholesPricer extends IPricer {
         if (callPutSign * (spot - strike) > 0) {
             double parityValue = spot - Math.exp(-r*timeToExpiry) * strike;
             double putCallPrice = actualPrice - callPutSign * parityValue;
-            System.out.println("PARITY" + strike);
             return getImpliedVol(putCallPrice, !isCall, spot, strike, timeToExpiry);
         }
 

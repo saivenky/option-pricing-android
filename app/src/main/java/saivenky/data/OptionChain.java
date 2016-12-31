@@ -61,7 +61,6 @@ public class OptionChain {
         this.puts = getOptionLines(puts);
 
         double timeToExpiry = IPricer.timeToExpiry(expiry);
-        System.out.println(timeToExpiry);
         double underlyingPrice = this.stock.regularMarketPrice;
         for(Option call : this.calls) {
             call.calculatedImpliedVol = BlackScholesPricer.DEFAULT.getImpliedVol(call.getPrice(), true, underlyingPrice, call.strike, timeToExpiry);
@@ -123,7 +122,7 @@ public class OptionChain {
     @Override
     public String toString() {
         TreeSet<Double> strikes = new TreeSet<>();
-        double timeToExpiry = IPricer.timeToExpiry(expiry);
+
         for(Option call : calls) {
             strikes.add(call.strike);
         }
@@ -134,7 +133,6 @@ public class OptionChain {
         String result = "";
         result += "call delta iv strike put iv delta\n";
         for(double strike : strikes) {
-            //  bid price ask  delta gamma theta strike
             Option call = getOption(true, strike);
             Option put = getOption(false, strike);
             if (call == null) {
@@ -143,18 +141,20 @@ public class OptionChain {
             if (put == null) {
                 put = Option.EMPTY;
             }
-            result += line(call.getPrice(), strike, put.getPrice());
-            result += line(call.theo.price, strike, put.theo.price);
-            result += line(call.theo.delta, strike, put.theo.delta);
-            result += line(call.calculatedImpliedVol, strike, put.calculatedImpliedVol);
+            result += line("Price", call.getPrice(), strike, put.getPrice());
+            result += line("Theo", call.theo.price, strike, put.theo.price);
+            result += line("Delta", call.theo.delta, strike, put.theo.delta);
+            result += line("Gamma", call.theo.gamma, strike, put.theo.gamma);
+            result += line("Theta", call.theo.theta / IPricer.TRADING_DAYS, strike, put.theo.theta / IPricer.TRADING_DAYS);
+            result += line("IV", call.calculatedImpliedVol, strike, put.calculatedImpliedVol);
             result += "------------------\n";
         }
 
         return result;
     }
 
-    String line(double... nums) {
-        String result = "";
+    String line(String header, double... nums) {
+        String result = header + " ";
         for(double num : nums) {
             result += String.format("%6.4f ", num);
         }
