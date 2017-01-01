@@ -1,6 +1,7 @@
 package saivenky.data;
 
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by saivenky on 12/31/16.
@@ -8,12 +9,12 @@ import java.util.HashMap;
 
 public class OptionChainRetriever {
     public static final OptionChainRetriever DEFAULT = new OptionChainRetriever();
-    HashMap<String, OptionChain> optionsByExpiry;
+    ConcurrentHashMap<String, OptionChain> optionsByExpiry;
 
     public double underlying;
 
     private OptionChainRetriever() {
-        optionsByExpiry = new HashMap<>();
+        optionsByExpiry = new ConcurrentHashMap<>();
         underlying = Double.NaN;
     }
 
@@ -36,5 +37,9 @@ public class OptionChainRetriever {
             } catch(Exception e) {}
             underlying = options.stock.regularMarketPrice;
         }
+    }
+
+    public void removeExpiry(String expiry) {
+        optionsByExpiry.remove(expiry);
     }
 }

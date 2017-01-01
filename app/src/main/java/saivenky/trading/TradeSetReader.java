@@ -10,10 +10,15 @@ import saivenky.data.OptionChain;
 
 public class TradeSetReader {
     public TradeSet create(Reader reader) throws IOException {
+        TradeSet tradeSet = new TradeSet();
+        addToSet(reader, tradeSet);
+        return tradeSet;
+    }
+
+    public void addToSet(Reader reader, TradeSet tradeSet) throws IOException {
         BufferedReader bufferedReader = new BufferedReader(reader);
         String line;
 
-        TradeSet tradeSet = new TradeSet();
         while((line = bufferedReader.readLine()) != null) {
             if(line.isEmpty()) continue;
             ITrade trade;
@@ -26,7 +31,6 @@ public class TradeSetReader {
         }
 
         bufferedReader.close();
-        return tradeSet;
     }
 
     public static void main(String[] args) throws IOException {

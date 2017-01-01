@@ -3,6 +3,8 @@ package saivenky.trading;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
 import saivenky.data.Option;
@@ -38,6 +40,15 @@ public class TradeSet {
         stockTrades.add(trade);
     }
 
+    public void clearTrades() {
+        for(OptionTrade optionTrade : optionTrades) {
+            OptionChainRetriever.DEFAULT.removeExpiry(optionTrade.expiry);
+        }
+        optionTrades.clear();
+        stockTrades.clear();
+        importantPrices.clear();
+    }
+
     double getPnl(double underlying) {
         double pnl = 0.0;
         for(OptionTrade trade : optionTrades) {
@@ -55,34 +66,53 @@ public class TradeSet {
 
     public String describePnL() {
         StringBuilder builder = new StringBuilder();
-        double prevPrice = 0.0;
-        double prevPnl = getPnl(0.0);
-        builder.append(createPnlLine(prevPrice, prevPnl));
+        Map<Double, Double> priceToPnl = getPriceToPnl();
+        for (double price : priceToPnl.keySet()) {
+            builder.append(createPnlLine(price, priceToPnl.get(price)));
+        }
+        return builder.toString();
+    }
+
+    public Map<Double, Double> getPriceToPnl() {
+        TreeMap<Double, Double> priceToPnl = new TreeMap<>();
+        if (optionTrades.isEmpty() && stockTrades.isEmpty()) {
+            return priceToPnl;
+        }
+
+        double minimum = importantPrices.first();
+        double maximum = importantPrices.last();
+        double range = maximum - minimum;
+        double belowAboveRange = 0.1 * range;
+        double belowMin = minimum - belowAboveRange;
+        double aboveMax = maximum + belowAboveRange;
+
+        double prevPrice = belowMin;
+        double prevPnl = getPnl(prevPrice);
+        priceToPnl.put(prevPrice, prevPnl);
 
         for(double price : importantPrices) {
             double pnl = getPnl(price);
             if((prevPnl < 0 && pnl > 0) || (prevPnl > 0 && pnl < 0)) {
                 double breakeven = calculateIntercept(price, pnl, prevPrice, prevPnl);
-                builder.append(createPnlLine(breakeven, getPnl(breakeven)));
+                priceToPnl.put(breakeven, getPnl(breakeven));
             }
 
-            builder.append(createPnlLine(price, pnl));
+            priceToPnl.put(price, pnl);
             prevPrice = price;
             prevPnl = pnl;
         }
 
-        double price = ITrade.MAX_UNDERLYING;
+        double price = aboveMax;
         double pnl = getPnl(price);
         if((prevPnl < 0 && pnl > 0) || (prevPnl > 0 && pnl < 0)) {
             double breakeven = calculateIntercept(price, pnl, prevPrice, prevPnl);
-            builder.append(String.format("%.2f: %.2f\n", breakeven, getPnl(breakeven)));
+            priceToPnl.put(breakeven, getPnl(breakeven));
         }
-        builder.append(String.format("%.2f: %.2f\n", price, pnl));
-        return builder.toString();
+        priceToPnl.put(price, pnl);
+        return priceToPnl;
     }
 
-    public String describeTheo() {
-        double underlying = OptionChainRetriever.DEFAULT.underlying;
+    public Theo getTheo(double underlying) {
         Theo totalTheo = new Theo();
         for(OptionTrade optionTrade : optionTrades) {
             Theo theo;
@@ -92,7 +122,7 @@ public class TradeSet {
             }
             else {
                 Option option = optionChain.getOption(optionTrade.isCall, optionTrade.strike);
-                theo = option.theo;
+                theo = optionTrade.getTheo(underlying, option.calculatedImpliedVol);
             }
 
             totalTheo.add(theo);
@@ -103,6 +133,12 @@ public class TradeSet {
             totalTheo.add(theo);
         }
 
+        return totalTheo;
+    }
+
+    public String describeTheo() {
+        double underlying = OptionChainRetriever.DEFAULT.underlying;
+        Theo totalTheo = getTheo(underlying);
         return totalTheo.prettyString() +
                 String.format("\nCurrent Underlying: %.2f\nCurrent PnL: %.2f\n", underlying, getPnl(underlying));
     }
