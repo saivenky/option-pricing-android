@@ -1,5 +1,10 @@
 package saivenky.trading;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+
 import saivenky.pricing.IPricer;
 import saivenky.pricing.Theo;
 import saivenky.pricing.BlackScholesPricer;
@@ -122,17 +127,44 @@ public class OptionTrade implements ITrade {
     }
 
     public static OptionTrade parse(String text) {
+        //+3 54C 0.33 1/6
         OptionTrade trade = new OptionTrade();
         String[] split = text.split(" ");
         int size = Integer.parseInt(split[0]);
         trade.isBuy = !(size < 0);
         trade.quantity = size;
         if (!trade.isBuy) trade.quantity *= -1;
-        trade.strike = Double.parseDouble(split[2]);
-        trade.isCall = split[3].equals("C");
-        trade.price = Double.parseDouble(split[5]);
-        trade.expiry = split[6];
+
+        String callPutAndStrike = split[1];
+        trade.isCall = (callPutAndStrike.toUpperCase().charAt(callPutAndStrike.length() - 1)) == 'C';
+        trade.strike = Double.parseDouble(callPutAndStrike.substring(0, callPutAndStrike.length() - 1));
+        trade.price = Double.parseDouble(split[2]);
+
+        trade.expiry = parseExpiry(split[3]);
         return trade;
+    }
+
+
+    private static final SimpleDateFormat EXPIRY_INPUT_FORMAT = new SimpleDateFormat("M/d");
+    private static final SimpleDateFormat EXPIRY_OUTPUT_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    private static final Calendar CALENDAR = Calendar.getInstance();
+
+    static {
+        EXPIRY_OUTPUT_FORMAT.setTimeZone(CALENDAR.getTimeZone());
+    }
+
+    private static String parseExpiry(String expiryInput) {
+        Date date;
+        try {
+            date = EXPIRY_INPUT_FORMAT.parse(expiryInput);
+        } catch (ParseException e) {
+            System.err.println("Bad expiry input: " + e.getMessage());
+            date = new Date();
+        }
+        int currentYear = CALENDAR.get(Calendar.YEAR);
+        CALENDAR.setTime(date);
+        CALENDAR.set(Calendar.YEAR, currentYear);
+        return EXPIRY_OUTPUT_FORMAT.format(CALENDAR.getTime());
     }
 
     public static void main(String[] args) {

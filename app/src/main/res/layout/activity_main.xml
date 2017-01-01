@@ -30,6 +30,7 @@
             android:layout_height="wrap_content"
             android:gravity="top"
             android:lines="12"
-            android:background="#f0f0f0"/>
+            android:background="#f0f0f0"
+            android:inputType="textMultiLine|textNoSuggestions|textCapCharacters"/>
     </LinearLayout>
 </ScrollView>

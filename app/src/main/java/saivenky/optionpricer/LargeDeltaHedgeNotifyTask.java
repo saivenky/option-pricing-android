@@ -3,9 +3,9 @@ package saivenky.optionpricer;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
-import android.renderscript.RenderScript;
 import android.support.v4.app.NotificationCompat;
 
+import saivenky.trading.DeltaHedgeResult;
 import saivenky.trading.LargeDeltaHedgeChecker;
 import saivenky.trading.TradeSet;
 
@@ -26,18 +26,25 @@ public class LargeDeltaHedgeNotifyTask implements Runnable {
         this.tradeSet = tradeSet;
         notificationBuilder = new NotificationCompat.Builder(context)
                 .setSmallIcon(R.drawable.ic_optionpricer)
-                .setContentTitle("Hedge trades")
-                .setContentText("Large delta position. Hedge trades now.")
+                .setContentTitle("Large Delta Position")
                 .setPriority(Notification.PRIORITY_MAX);
     }
 
     @Override
     public void run() {
-        if(largeDeltaHedgeChecker.check(tradeSet)) {
+        DeltaHedgeResult result = largeDeltaHedgeChecker.check(tradeSet);
+        if(result.isHedgeNeeded) {
+            String message = createNotificationMessage(result);
+            notificationBuilder.setContentText(message);
             notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
         }
         else {
             notificationManager.cancel(NOTIFICATION_ID);
         }
+    }
+
+    private String createNotificationMessage(DeltaHedgeResult result) {
+        String message = String.format("Current delta: %.1f, Hedge needed", result.currentDelta);
+        return message;
     }
 }

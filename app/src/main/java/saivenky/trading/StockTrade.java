@@ -26,7 +26,7 @@ public class StockTrade implements ITrade {
         StockTrade trade = new StockTrade();
         String[] split = text.split(" ");
         trade.quantity = Integer.parseInt(split[0]);
-        trade.price = Double.parseDouble(split[2]);
+        trade.price = Double.parseDouble(split[1]);
         return trade;
     }
 
