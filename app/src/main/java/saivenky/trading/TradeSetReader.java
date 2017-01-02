@@ -8,6 +8,7 @@ import java.io.Reader;
 
 import saivenky.data.OptionChain;
 import saivenky.data.OptionChainRetriever;
+import saivenky.data.Stock;
 
 public class TradeSetReader {
     public TradeSet create(Reader reader) throws IOException {
@@ -35,15 +36,15 @@ public class TradeSetReader {
     }
 
     public static void main(String[] args) throws IOException {
-        File f = new File("/home/saivenky/desktop/trades.txt");
+        Stock.initialize("SBUX");
+        OptionChainRetriever.initialize(Stock.DEFAULT);
+
         FileReader reader = new FileReader("/home/saivenky/desktop/trades.txt");
         TradeSetReader tsr = new TradeSetReader();
         TradeSet ts = tsr.create(reader);
 
-        OptionChain optionChain = new OptionChain();
-        optionChain.getData("2016-12-30");
-
+        OptionChainRetriever.DEFAULT.retrieveDataForAll();
         System.out.println(ts.describePnL());
-        System.out.println(ts.describeTheo(OptionChainRetriever.DEFAULT.underlying));
+        System.out.println(ts.describeTheo(Stock.DEFAULT.regularMarketPrice));
     }
 }

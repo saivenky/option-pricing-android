@@ -22,20 +22,29 @@ public class OptionChain {
     public String expiry;
     public Option[] calls;
     public Option[] puts;
-    public Stock stock;
 
-    private static String createUrl(String stockSymbol, String expiry) {
-        long epochTime = epochTime(expiry);
+    private Stock stock;
+
+    private long epochTime;
+    private String dataUrl;
+
+    OptionChain(String expiry, Stock stock) {
+        this.expiry = expiry;
+        epochTime = epochTime(this.expiry);
+        dataUrl = createUrl(stock.symbol, epochTime);
+        isExpired = IPricer.timeToExpiry(expiry) < 0;
+        this.stock = stock;
+    }
+
+    private static String createUrl(String stockSymbol, long epochTime) {
         return String.format("https://query2.finance.yahoo.com/v7/finance/options/%s?formatted=false&lang=en-US&region=US&straddle=false&date=%d", stockSymbol, epochTime);
     }
 
-    private StringBuilder getRaw(String expiry) {
-        String urlPath = createUrl("SBUX", expiry);
-
+    private StringBuilder getRaw() {
         StringBuilder sb = new StringBuilder();
 
         try {
-            URL url = new URL(urlPath);
+            URL url = new URL(dataUrl);
             BufferedReader br = new BufferedReader(new InputStreamReader(url.openStream()));
             String line;
             while ((line = br.readLine()) != null) {
@@ -46,11 +55,10 @@ public class OptionChain {
         return sb;
     }
 
-    public void getData(String expiry) {
+    public void getData() {
         isExpired = IPricer.timeToExpiry(expiry) < 0;
 
-        this.expiry = expiry;
-        StringBuilder sb = getRaw(expiry);
+        StringBuilder sb = getRaw();
 
         JSONObject jsonObject = new JSONObject(sb.toString());
         JSONArray result = jsonObject.getJSONObject("optionChain").getJSONArray("result");
@@ -59,7 +67,8 @@ public class OptionChain {
         JSONArray calls = options.getJSONArray("calls");
         JSONArray puts = options.getJSONArray("puts");
 
-        this.stock = new Stock(stock);
+        this.stock.update(stock);
+
         if (isExpired) {
             this.calls = null;
             this.puts = null;
@@ -172,8 +181,9 @@ public class OptionChain {
     }
 
     public static void main(String[] args) throws IOException, JSONException {
-        OptionChain od = new OptionChain();
-        od.getData("2017-01-06");
+        Stock.initialize("SBUX");
+        OptionChain od = new OptionChain("2017-01-06", Stock.DEFAULT);
+        od.getData();
         System.out.println(od);
     }
 }

@@ -10,6 +10,7 @@ import java.util.TreeSet;
 import saivenky.data.Option;
 import saivenky.data.OptionChain;
 import saivenky.data.OptionChainRetriever;
+import saivenky.data.Stock;
 import saivenky.pricing.Theo;
 
 public class TradeSet {
@@ -166,8 +167,8 @@ public class TradeSet {
     }
 
     public static void main(String[] args) throws IOException {
-        OptionChain optionChain = new OptionChain();
-        optionChain.getData("2016-12-30");
+        Stock.initialize("SBUX");
+        OptionChainRetriever.initialize(Stock.DEFAULT);
 
         TradeSet ts = new TradeSet();
         ts.addTrade(OptionTrade.parse("-3 x 56 C @ 0.3 2017-01-06"));
@@ -176,6 +177,6 @@ public class TradeSet {
 
         OptionChainRetriever.DEFAULT.retrieveDataForAll();
         System.out.println(ts.describePnL());
-        System.out.println(ts.describeTheo(OptionChainRetriever.DEFAULT.underlying));
+        System.out.println(ts.describeTheo(Stock.DEFAULT.regularMarketPrice));
     }
 }

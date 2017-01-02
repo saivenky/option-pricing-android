@@ -8,14 +8,18 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 public class OptionChainRetriever {
-    public static final OptionChainRetriever DEFAULT = new OptionChainRetriever();
+    public static OptionChainRetriever DEFAULT;
+    public static void initialize(Stock stock) {
+        DEFAULT = new OptionChainRetriever(stock);
+    }
+
     ConcurrentHashMap<String, OptionChain> optionsByExpiry;
 
-    public double underlying;
+    private Stock stock;
 
-    private OptionChainRetriever() {
+    private OptionChainRetriever(Stock stock) {
+        this.stock = stock;
         optionsByExpiry = new ConcurrentHashMap<>();
-        underlying = Double.NaN;
     }
 
     public OptionChain getOptionChain(String expiry) {
@@ -25,17 +29,15 @@ public class OptionChainRetriever {
 
     public void addExpiry(String expiry) {
         if(optionsByExpiry.containsKey(expiry)) return;
-        OptionChain options = new OptionChain();
+        OptionChain options = new OptionChain(expiry, stock);
         optionsByExpiry.put(expiry, options);
     }
 
     public void retrieveDataForAll() {
-        for(String expiry : optionsByExpiry.keySet()) {
-            OptionChain options = optionsByExpiry.get(expiry);
+        for(OptionChain options : optionsByExpiry.values()) {
             try {
-                options.getData(expiry);
+                options.getData();
             } catch(Exception e) {}
-            underlying = options.stock.regularMarketPrice;
         }
     }
 

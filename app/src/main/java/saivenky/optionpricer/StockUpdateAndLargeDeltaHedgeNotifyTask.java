@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.support.v4.app.NotificationCompat;
 
+import saivenky.data.Stock;
 import saivenky.trading.DeltaHedgeResult;
 import saivenky.trading.LargeDeltaHedgeChecker;
 import saivenky.trading.TradeSet;
@@ -13,14 +14,14 @@ import saivenky.trading.TradeSet;
  * Created by saivenky on 1/1/17.
  */
 
-public class LargeDeltaHedgeNotifyTask implements Runnable {
+public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
     private static final int NOTIFICATION_ID = 001;
     private final LargeDeltaHedgeChecker largeDeltaHedgeChecker;
     private NotificationManager notificationManager;
     private final TradeSet tradeSet;
     private NotificationCompat.Builder notificationBuilder;
 
-    public LargeDeltaHedgeNotifyTask(NotificationManager notificationManager, Context context, TradeSet tradeSet) {
+    public StockUpdateAndLargeDeltaHedgeNotifyTask(NotificationManager notificationManager, Context context, TradeSet tradeSet) {
         this.largeDeltaHedgeChecker = new LargeDeltaHedgeChecker();
         this.notificationManager = notificationManager;
         this.tradeSet = tradeSet;
@@ -32,6 +33,8 @@ public class LargeDeltaHedgeNotifyTask implements Runnable {
 
     @Override
     public void run() {
+        System.out.println("Updating stock and checking for large delta");
+        Stock.DEFAULT.getData();
         DeltaHedgeResult result = largeDeltaHedgeChecker.check(tradeSet);
         if(result.isHedgeNeeded) {
             String message = createNotificationMessage(result);

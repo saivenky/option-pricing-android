@@ -12,12 +12,13 @@ import android.widget.TextView;
 import java.io.StringReader;
 
 import saivenky.data.OptionChainRetriever;
+import saivenky.data.Stock;
 import saivenky.trading.TradeSet;
 import saivenky.trading.TradeSetReader;
 
 public class MainActivity extends AppCompatActivity {
-    private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 180000;
-    private static final long LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 10000;
+    private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 240000;
+    private static final long LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 60000;
 
     private EditText mUnderlying;
     private EditText mTrades;
@@ -36,6 +37,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Stock.initialize("SBUX");
+        OptionChainRetriever.initialize(Stock.DEFAULT);
 
         mUnderlying = (EditText) findViewById(R.id.underlying);
         mTrades = (EditText) findViewById(R.id.trades);
@@ -64,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
         optionChainDataUpdateLoopingTask =
                 new LoopingTask(workerThread.getHandler(), new OptionChainDataUpdateTask(), OPTION_CHAIN_LOOP_INTERVAL_MILLIS);
-        LargeDeltaHedgeNotifyTask deltaHedgeTask = new LargeDeltaHedgeNotifyTask(notificationManager, this, tradeSet);
+        StockUpdateAndLargeDeltaHedgeNotifyTask deltaHedgeTask = new StockUpdateAndLargeDeltaHedgeNotifyTask(notificationManager, this, tradeSet);
         largeDeltaHedgeNotifyLoopingTask = new LoopingTask(workerThread.getHandler(), deltaHedgeTask, LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS);
 
         optionChainDataUpdateLoopingTask.start();
@@ -118,9 +122,9 @@ public class MainActivity extends AppCompatActivity {
 
                     OptionChainRetriever.DEFAULT.retrieveDataForAll();
 
-                    double underlyingPrice = 0;
+                    double underlyingPrice;
                     if(underlying == null || underlying.isEmpty()) {
-                        underlyingPrice = OptionChainRetriever.DEFAULT.underlying;
+                        underlyingPrice = Stock.DEFAULT.regularMarketPrice;
                     }
                     else {
                         underlyingPrice = Double.parseDouble(underlying);
@@ -133,10 +137,12 @@ public class MainActivity extends AppCompatActivity {
                     return result;
                 }
                 catch (Exception e) {
+                    PnlAndTheoResult result = new PnlAndTheoResult();
+                    result.priceToPnlDescription = "Error reading trades and calculating PnL";
+                    result.theoDescription = e.getMessage();
                     e.printStackTrace();
+                    return result;
                 }
-
-                return null;
             }
 
             @Override
