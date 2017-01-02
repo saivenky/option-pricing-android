@@ -40,12 +40,13 @@ public class Option {
     }
 
     double getPrice() {
-        return lastPrice;
-        //return (bid + ask) / 2;
+        //return lastPrice;
+        return (bid + ask) / 2;
     }
 
     @Override
     public String toString() {
-        return String.format("%s %.2f: %.2f", symbol, strike, lastPrice);
+        return String.format("%s %.2f: (last: %.2f, bid: %.2f, ask: %.2f, impl.vol: %.3f%%",
+                symbol, strike, lastPrice, bid, ask, calculatedImpliedVol * 100);
     }
 }

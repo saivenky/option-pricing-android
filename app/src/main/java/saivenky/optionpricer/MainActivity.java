@@ -1,13 +1,10 @@
 package saivenky.optionpricer;
 
-import android.app.Activity;
 import android.app.NotificationManager;
 import android.os.AsyncTask;
-import android.os.Handler;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -21,9 +18,13 @@ import saivenky.trading.TradeSetReader;
 public class MainActivity extends AppCompatActivity {
     private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 180000;
     private static final long LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 10000;
+
+    private EditText mUnderlying;
     private EditText mTrades;
-    private Button mPnlButton;
     private TextView mPnlView;
+    private Button mPnlButton;
+    private Button mQuoteButton;
+
     private WorkerThread workerThread;
 
     LoopingTask optionChainDataUpdateLoopingTask;
@@ -36,13 +37,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        mUnderlying = (EditText) findViewById(R.id.underlying);
         mTrades = (EditText) findViewById(R.id.trades);
         mPnlView = (TextView) findViewById(R.id.pnl_view);
         mPnlButton = (Button) findViewById(R.id.pnl_button);
+        mQuoteButton = (Button) findViewById(R.id.quote_button);
+
         mPnlButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 readTradesAndCalculatePnl();
+            }
+        });
+        mQuoteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getQuotesForOptions();
             }
         });
 
@@ -60,25 +70,21 @@ public class MainActivity extends AppCompatActivity {
         optionChainDataUpdateLoopingTask.start();
     }
 
-    private void readTradesAndCalculatePnl() {
+    private void getQuotesForOptions() {
         final String tradesText = mTrades.getText().toString();
 
         AsyncTask<Void, Void, String> task = new AsyncTask<Void, Void, String>() {
             @Override
             protected String doInBackground(Void... voids) {
                 try {
-                    largeDeltaHedgeNotifyLoopingTask.cancel();
                     StringReader reader = new StringReader(tradesText);
                     TradeSetReader tsr = new TradeSetReader();
-                    StringBuilder sb = new StringBuilder();
                     tradeSet.clearTrades();
                     tsr.addToSet(reader, tradeSet);
 
                     OptionChainRetriever.DEFAULT.retrieveDataForAll();
-                    sb.append(tradeSet.describePnL());
-                    sb.append(tradeSet.describeTheo());
-                    largeDeltaHedgeNotifyLoopingTask.start();
-                    return sb.toString();
+
+                    return tradeSet.getQuotesForOptions();
                 }
                 catch (Exception e) {
                     e.printStackTrace();
@@ -91,18 +97,62 @@ public class MainActivity extends AppCompatActivity {
             protected void onPostExecute(String result) {
                 mPnlView.setText(result);
             }
+        };
 
+        task.execute();
+    }
+
+    private void readTradesAndCalculatePnl() {
+        final String tradesText = mTrades.getText().toString();
+        final String underlying = mUnderlying.getText().toString();
+
+        AsyncTask<Void, Void, PnlAndTheoResult> task = new AsyncTask<Void, Void, PnlAndTheoResult>() {
+            @Override
+            protected PnlAndTheoResult doInBackground(Void... voids) {
+                try {
+                    largeDeltaHedgeNotifyLoopingTask.cancel();
+                    StringReader reader = new StringReader(tradesText);
+                    TradeSetReader tsr = new TradeSetReader();
+                    tradeSet.clearTrades();
+                    tsr.addToSet(reader, tradeSet);
+
+                    OptionChainRetriever.DEFAULT.retrieveDataForAll();
+
+                    double underlyingPrice = 0;
+                    if(underlying == null || underlying.isEmpty()) {
+                        underlyingPrice = OptionChainRetriever.DEFAULT.underlying;
+                    }
+                    else {
+                        underlyingPrice = Double.parseDouble(underlying);
+                    }
+                    PnlAndTheoResult result = new PnlAndTheoResult();
+                    result.priceToPnlDescription = tradeSet.describePnL();
+                    result.theoDescription = tradeSet.describeTheo(underlyingPrice);
+                    largeDeltaHedgeNotifyLoopingTask.start();
+
+                    return result;
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(PnlAndTheoResult result) {
+                mPnlView.setText(result.priceToPnlDescription + "\n" + result.theoDescription);
+            }
         };
 
         task.execute();
 
     }
 
-    public static void hideSoftKeyboard(Activity activity) {
-        InputMethodManager inputMethodManager =
-                (InputMethodManager) activity.getSystemService(
-                        Activity.INPUT_METHOD_SERVICE);
-        inputMethodManager.hideSoftInputFromWindow(
-                activity.getCurrentFocus().getWindowToken(), 0);
+    private class PnlAndTheoResult {
+        String priceToPnlDescription;
+        String theoDescription;
     }
 }
+
+

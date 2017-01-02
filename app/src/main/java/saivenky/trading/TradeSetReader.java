@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.Reader;
 
 import saivenky.data.OptionChain;
+import saivenky.data.OptionChainRetriever;
 
 public class TradeSetReader {
     public TradeSet create(Reader reader) throws IOException {
@@ -43,6 +44,6 @@ public class TradeSetReader {
         optionChain.getData("2016-12-30");
 
         System.out.println(ts.describePnL());
-        System.out.println(ts.describeTheo());
+        System.out.println(ts.describeTheo(OptionChainRetriever.DEFAULT.underlying));
     }
 }

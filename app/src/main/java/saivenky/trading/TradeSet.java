@@ -64,6 +64,21 @@ public class TradeSet {
         return String.format("%4.2f: %4.2f\n", underlying, pnl);
     }
 
+    public String getQuotesForOptions() {
+        StringBuilder result = new StringBuilder();
+        for(OptionTrade optionTrade : optionTrades) {
+            OptionChain optionChain = OptionChainRetriever.DEFAULT.getOptionChain(optionTrade.expiry);
+            if (!optionChain.isExpired) {
+                Option option = optionChain.getOption(optionTrade.isCall, optionTrade.strike);
+                result.append(option.toString()+"\n");
+                result.append(option.theo+"\n");
+                result.append("----");
+            }
+        }
+
+        return result.toString();
+    }
+
     public String describePnL() {
         StringBuilder builder = new StringBuilder();
         Map<Double, Double> priceToPnl = getPriceToPnl();
@@ -83,8 +98,8 @@ public class TradeSet {
         double maximum = importantPrices.last();
         double range = maximum - minimum;
         double belowAboveRange = 0.1 * range;
-        double belowMin = minimum - belowAboveRange;
-        double aboveMax = maximum + belowAboveRange;
+        double belowMin = 0;
+        double aboveMax = Math.round(2 * maximum / 100) * 100;
 
         double prevPrice = belowMin;
         double prevPnl = getPnl(prevPrice);
@@ -109,6 +124,9 @@ public class TradeSet {
             priceToPnl.put(breakeven, getPnl(breakeven));
         }
         priceToPnl.put(price, pnl);
+
+        priceToPnl.remove(priceToPnl.firstKey());
+        priceToPnl.remove(priceToPnl.lastKey());
         return priceToPnl;
     }
 
@@ -136,8 +154,7 @@ public class TradeSet {
         return totalTheo;
     }
 
-    public String describeTheo() {
-        double underlying = OptionChainRetriever.DEFAULT.underlying;
+    public String describeTheo(double underlying) {
         Theo totalTheo = getTheo(underlying);
         return totalTheo.prettyString() +
                 String.format("\nCurrent Underlying: %.2f\nCurrent PnL: %.2f\n", underlying, getPnl(underlying));
@@ -159,6 +176,6 @@ public class TradeSet {
 
         OptionChainRetriever.DEFAULT.retrieveDataForAll();
         System.out.println(ts.describePnL());
-        System.out.println(ts.describeTheo());
+        System.out.println(ts.describeTheo(OptionChainRetriever.DEFAULT.underlying));
     }
 }

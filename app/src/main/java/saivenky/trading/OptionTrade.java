@@ -127,7 +127,7 @@ public class OptionTrade implements ITrade {
     }
 
     public static OptionTrade parse(String text) {
-        //+3 54C 0.33 1/6
+        //+3 54+ 0.33 1/6
         OptionTrade trade = new OptionTrade();
         String[] split = text.split(" ");
         int size = Integer.parseInt(split[0]);
@@ -136,12 +136,18 @@ public class OptionTrade implements ITrade {
         if (!trade.isBuy) trade.quantity *= -1;
 
         String callPutAndStrike = split[1];
-        trade.isCall = (callPutAndStrike.toUpperCase().charAt(callPutAndStrike.length() - 1)) == 'C';
+        trade.isCall = isCall(callPutAndStrike.charAt(callPutAndStrike.length() - 1));
         trade.strike = Double.parseDouble(callPutAndStrike.substring(0, callPutAndStrike.length() - 1));
         trade.price = Double.parseDouble(split[2]);
 
         trade.expiry = parseExpiry(split[3]);
         return trade;
+    }
+
+    private static boolean isCall(char callPut) {
+        if(callPut == '+') return true;
+        else if (callPut == '-') return false;
+        return true;
     }
 
 
