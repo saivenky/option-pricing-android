@@ -13,6 +13,8 @@ import java.io.StringReader;
 
 import saivenky.data.OptionChainRetriever;
 import saivenky.data.Stock;
+import saivenky.pricing.Theo;
+import saivenky.trading.StockTrade;
 import saivenky.trading.TradeSet;
 import saivenky.trading.TradeSetReader;
 
@@ -20,13 +22,14 @@ public class MainActivity extends AppCompatActivity {
     private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 180000;
     private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 60000;
     private static final long OPTION_CHAIN_VALIDITY_MILLIS = OPTION_CHAIN_LOOP_INTERVAL_MILLIS / 2;
-    private static final long STOCK_VALIDITY_MILLIS = STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS / 2;
+    private static final long STOCK_VALIDITY_MILLIS = 10000;
 
     private EditText mUnderlying;
     private EditText mTrades;
     private TextView mPnlView;
     private Button mPnlButton;
     private Button mQuoteButton;
+    private Button mHedgeButton;
 
     private WorkerThread workerThread;
 
@@ -48,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         mPnlView = (TextView) findViewById(R.id.pnl_view);
         mPnlButton = (Button) findViewById(R.id.pnl_button);
         mQuoteButton = (Button) findViewById(R.id.quote_button);
+        mHedgeButton = (Button) findViewById(R.id.hedge_button);
 
         mPnlButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -59,6 +63,12 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 getQuotesForOptions();
+            }
+        });
+        mHedgeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                addHedge();
             }
         });
 
@@ -75,6 +85,26 @@ public class MainActivity extends AppCompatActivity {
 
         optionChainDataUpdateLoopingTask.start();
     }
+
+    private void addHedge() {
+        if (tradeSet.isEmpty()) return;
+
+        final String underlying = mUnderlying.getText().toString();
+        double underlyingPrice;
+        if(underlying == null || underlying.isEmpty()) {
+            underlyingPrice = Stock.DEFAULT.regularMarketPrice;
+        }
+        else {
+            underlyingPrice = Double.parseDouble(underlying);
+        }
+
+        Theo theo = tradeSet.getTheo(underlyingPrice);
+        StockTrade stockTrade = StockTrade.createHedgeTrade(theo, underlyingPrice, DELTA_HEDGE_ROUNDING);
+        tradeSet.addTrade(stockTrade);
+        mTrades.setText(mTrades.getText() + "\n" + stockTrade.toString());
+    }
+
+    private static int DELTA_HEDGE_ROUNDING = 10;
 
     private void getQuotesForOptions() {
         final String tradesText = mTrades.getText().toString();

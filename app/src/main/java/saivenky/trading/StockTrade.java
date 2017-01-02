@@ -37,7 +37,7 @@ public class StockTrade implements ITrade {
 
     @Override
     public String toString() {
-        return String.format("%d @ %.2f", quantity, price);
+        return String.format("S %d %.2f", quantity, price);
     }
 
     @Override
@@ -52,5 +52,13 @@ public class StockTrade implements ITrade {
         theo.delta = 1;
         theo.multiplyWithSize(quantity);
         return theo;
+    }
+
+    public static StockTrade createHedgeTrade(Theo theo, double underlying, int deltaRoundingAmount) {
+        int quantity = (int) (-Math.round(theo.delta / deltaRoundingAmount) * deltaRoundingAmount);
+        StockTrade hedgeTrade = new StockTrade();
+        hedgeTrade.quantity = quantity;
+        hedgeTrade.price = underlying;
+        return hedgeTrade;
     }
 }

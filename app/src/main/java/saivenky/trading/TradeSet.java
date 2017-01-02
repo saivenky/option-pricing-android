@@ -24,7 +24,7 @@ public class TradeSet {
         importantPrices = new TreeSet<>();
     }
 
-    void addTrade(ITrade trade) {
+    public void addTrade(ITrade trade) {
         if (trade instanceof OptionTrade) {
             addOptionTrade((OptionTrade) trade);
         }
@@ -39,6 +39,10 @@ public class TradeSet {
     void addStockTrade(StockTrade trade) {
         importantPrices.add(trade.getStrike());
         stockTrades.add(trade);
+    }
+
+    public boolean isEmpty() {
+        return optionTrades.isEmpty() && stockTrades.isEmpty();
     }
 
     public void clearTrades() {

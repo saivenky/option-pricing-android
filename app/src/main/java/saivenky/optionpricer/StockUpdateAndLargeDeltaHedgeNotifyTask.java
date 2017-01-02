@@ -38,9 +38,11 @@ public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
         System.out.println("Updating stock and checking for large delta");
         if (Stock.DEFAULT.lastUpdate + validityTimeMillis > System.currentTimeMillis()) {
             System.out.println("Stock data still valid. Skipping update");
-            return;
         }
-        Stock.DEFAULT.getData();
+        else {
+            Stock.DEFAULT.getData();
+        }
+
         DeltaHedgeResult result = largeDeltaHedgeChecker.check(tradeSet);
         if(result.isHedgeNeeded) {
             String message = createNotificationMessage(result);

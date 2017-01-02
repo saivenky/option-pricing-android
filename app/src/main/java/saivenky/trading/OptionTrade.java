@@ -91,7 +91,7 @@ public class OptionTrade implements ITrade {
 
     @Override
     public String toString() {
-        return String.format("%s%d x %.2f %s @ %.2f %s", isBuy ? "+" : "-", quantity, strike, isCall ? "C" : "P", price, expiry);
+        return String.format("O %s%d %.2f%s %.2f %s", isBuy ? "+" : "-", quantity, strike, isCall ? "+" : "-", price, formatToInputExpiry(expiry));
     }
 
     public String fullDescription() {
@@ -171,6 +171,18 @@ public class OptionTrade implements ITrade {
         CALENDAR.setTime(date);
         CALENDAR.set(Calendar.YEAR, currentYear);
         return EXPIRY_OUTPUT_FORMAT.format(CALENDAR.getTime());
+    }
+
+    private static String formatToInputExpiry(String outputExpiry) {
+        Date date;
+        try {
+            date = EXPIRY_OUTPUT_FORMAT.parse(outputExpiry);
+        } catch (ParseException e) {
+            System.err.println("Bad expiry input: " + e.getMessage());
+            date = new Date();
+        }
+
+        return EXPIRY_INPUT_FORMAT.format(date);
     }
 
     public static void main(String[] args) {
