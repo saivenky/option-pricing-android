@@ -14,6 +14,7 @@ public class OptionChainRetriever {
     }
 
     ConcurrentHashMap<String, OptionChain> optionsByExpiry;
+    public long lastUpdate;
 
     private Stock stock;
 
@@ -34,6 +35,7 @@ public class OptionChainRetriever {
     }
 
     public void retrieveDataForAll() {
+        lastUpdate = System.currentTimeMillis();
         for(OptionChain options : optionsByExpiry.values()) {
             try {
                 options.getData();

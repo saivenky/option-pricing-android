@@ -19,6 +19,7 @@ import saivenky.pricing.IPricer;
 
 public class OptionChain {
     public boolean isExpired;
+    public long lastUpdate;
     public String expiry;
     public Option[] calls;
     public Option[] puts;
@@ -56,6 +57,7 @@ public class OptionChain {
     }
 
     public void getData() {
+        lastUpdate = System.currentTimeMillis();
         isExpired = IPricer.timeToExpiry(expiry) < 0;
 
         StringBuilder sb = getRaw();
@@ -67,7 +69,7 @@ public class OptionChain {
         JSONArray calls = options.getJSONArray("calls");
         JSONArray puts = options.getJSONArray("puts");
 
-        this.stock.update(stock);
+        this.stock.update(stock, lastUpdate);
 
         if (isExpired) {
             this.calls = null;

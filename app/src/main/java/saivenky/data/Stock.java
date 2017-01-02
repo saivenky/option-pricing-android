@@ -21,6 +21,7 @@ public class Stock {
 
     public final String symbol;
     private final String dataUrl;
+    public long lastUpdate;
 
     private Stock(String symbol) {
         this.symbol = symbol;
@@ -50,6 +51,7 @@ public class Stock {
     private static final String LAST_PRICE = "l";
 
     public void getData() {
+        lastUpdate = System.currentTimeMillis();
         StringBuilder sb = getRaw();
 
         JSONArray jsonArray = new JSONArray(sb.substring(RAW_DATA_OFFSET));
@@ -57,7 +59,8 @@ public class Stock {
         regularMarketPrice = result.getDouble(LAST_PRICE);
     }
 
-    void update(JSONObject object) {
+    void update(JSONObject object, long updateTime) {
+        lastUpdate = updateTime;
         regularMarketPrice = object.getDouble("regularMarketPrice");
         bid = object.getDouble("bid");
         ask = object.getDouble("ask");

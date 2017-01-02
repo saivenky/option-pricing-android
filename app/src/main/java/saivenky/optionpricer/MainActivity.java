@@ -17,8 +17,10 @@ import saivenky.trading.TradeSet;
 import saivenky.trading.TradeSetReader;
 
 public class MainActivity extends AppCompatActivity {
-    private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 240000;
-    private static final long LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 60000;
+    private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 180000;
+    private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 60000;
+    private static final long OPTION_CHAIN_VALIDITY_MILLIS = OPTION_CHAIN_LOOP_INTERVAL_MILLIS / 2;
+    private static final long STOCK_VALIDITY_MILLIS = STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS / 2;
 
     private EditText mUnderlying;
     private EditText mTrades;
@@ -66,10 +68,10 @@ public class MainActivity extends AppCompatActivity {
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        optionChainDataUpdateLoopingTask =
-                new LoopingTask(workerThread.getHandler(), new OptionChainDataUpdateTask(), OPTION_CHAIN_LOOP_INTERVAL_MILLIS);
-        StockUpdateAndLargeDeltaHedgeNotifyTask deltaHedgeTask = new StockUpdateAndLargeDeltaHedgeNotifyTask(notificationManager, this, tradeSet);
-        largeDeltaHedgeNotifyLoopingTask = new LoopingTask(workerThread.getHandler(), deltaHedgeTask, LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS);
+        OptionChainUpdateTask optionChainUpdateTask = new OptionChainUpdateTask(OPTION_CHAIN_VALIDITY_MILLIS);
+        optionChainDataUpdateLoopingTask = new LoopingTask(workerThread.getHandler(), optionChainUpdateTask, OPTION_CHAIN_LOOP_INTERVAL_MILLIS);
+        StockUpdateAndLargeDeltaHedgeNotifyTask deltaHedgeTask = new StockUpdateAndLargeDeltaHedgeNotifyTask(notificationManager, this, tradeSet, STOCK_VALIDITY_MILLIS);
+        largeDeltaHedgeNotifyLoopingTask = new LoopingTask(workerThread.getHandler(), deltaHedgeTask, STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS);
 
         optionChainDataUpdateLoopingTask.start();
     }

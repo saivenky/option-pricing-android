@@ -20,11 +20,13 @@ public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
     private NotificationManager notificationManager;
     private final TradeSet tradeSet;
     private NotificationCompat.Builder notificationBuilder;
+    private long validityTimeMillis;
 
-    public StockUpdateAndLargeDeltaHedgeNotifyTask(NotificationManager notificationManager, Context context, TradeSet tradeSet) {
+    public StockUpdateAndLargeDeltaHedgeNotifyTask(NotificationManager notificationManager, Context context, TradeSet tradeSet, long validityTimeMillis) {
         this.largeDeltaHedgeChecker = new LargeDeltaHedgeChecker();
         this.notificationManager = notificationManager;
         this.tradeSet = tradeSet;
+        this.validityTimeMillis = validityTimeMillis;
         notificationBuilder = new NotificationCompat.Builder(context)
                 .setSmallIcon(R.drawable.ic_optionpricer)
                 .setContentTitle("Large Delta Position")
@@ -34,6 +36,10 @@ public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
     @Override
     public void run() {
         System.out.println("Updating stock and checking for large delta");
+        if (Stock.DEFAULT.lastUpdate + validityTimeMillis > System.currentTimeMillis()) {
+            System.out.println("Stock data still valid. Skipping update");
+            return;
+        }
         Stock.DEFAULT.getData();
         DeltaHedgeResult result = largeDeltaHedgeChecker.check(tradeSet);
         if(result.isHedgeNeeded) {
