@@ -35,4 +35,9 @@ public class LoopingTask implements Runnable {
     public void cancel() {
         isCanceled = true;
     }
+
+    public void updateInterval(long newDelayTimeMillis) {
+        delayTimeMillis = newDelayTimeMillis;
+        if(!isCanceled) handler.post(this);
+    }
 }

@@ -51,8 +51,13 @@ public class Stock {
     private static final String LAST_PRICE = "l";
 
     public void getData() {
-        lastUpdate = System.currentTimeMillis();
         StringBuilder sb = getRaw();
+        if(sb.length() < 0) {
+            System.err.println("No data received for stock");
+            return;
+        }
+
+        lastUpdate = System.currentTimeMillis();
 
         JSONArray jsonArray = new JSONArray(sb.substring(RAW_DATA_OFFSET));
         JSONObject result = jsonArray.getJSONObject(0);

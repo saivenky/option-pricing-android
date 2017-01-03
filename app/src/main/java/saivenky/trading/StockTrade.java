@@ -49,6 +49,7 @@ public class StockTrade implements ITrade {
     @Override
     public Theo getTheo(double underlying, double impliedVol) {
         Theo theo = new Theo();
+        theo.price = underlying - price;
         theo.delta = 1;
         theo.multiplyWithSize(quantity);
         return theo;

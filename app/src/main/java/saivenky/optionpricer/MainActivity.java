@@ -20,9 +20,11 @@ import saivenky.trading.TradeSetReader;
 
 public class MainActivity extends AppCompatActivity {
     private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 180000;
-    private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 60000;
+    private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 5000;
+    private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_SLOW_INTERVAL_MILLIS = 60000;
+
     private static final long OPTION_CHAIN_VALIDITY_MILLIS = OPTION_CHAIN_LOOP_INTERVAL_MILLIS / 2;
-    private static final long STOCK_VALIDITY_MILLIS = 10000;
+    private static final long STOCK_VALIDITY_MILLIS = 5000;
 
     private EditText mUnderlying;
     private EditText mTrades;
@@ -30,6 +32,8 @@ public class MainActivity extends AppCompatActivity {
     private Button mPnlButton;
     private Button mQuoteButton;
     private Button mHedgeButton;
+    private Button mUpdatesButton;
+    private boolean isFastUpdating;
 
     private WorkerThread workerThread;
 
@@ -52,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
         mPnlButton = (Button) findViewById(R.id.pnl_button);
         mQuoteButton = (Button) findViewById(R.id.quote_button);
         mHedgeButton = (Button) findViewById(R.id.hedge_button);
+        mUpdatesButton = (Button) findViewById(R.id.updates_button);
 
         mPnlButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -84,6 +89,21 @@ public class MainActivity extends AppCompatActivity {
         largeDeltaHedgeNotifyLoopingTask = new LoopingTask(workerThread.getHandler(), deltaHedgeTask, STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS);
 
         optionChainDataUpdateLoopingTask.start();
+
+        isFastUpdating = true;
+        mUpdatesButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                isFastUpdating = !isFastUpdating;
+                if(isFastUpdating) {
+                    largeDeltaHedgeNotifyLoopingTask.updateInterval(STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS);
+                }
+                else {
+                    largeDeltaHedgeNotifyLoopingTask.updateInterval(STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_SLOW_INTERVAL_MILLIS);
+                }
+                mUpdatesButton.setText(isFastUpdating ? "Slower" : "Faster");
+            }
+        });
     }
 
     private void addHedge() {

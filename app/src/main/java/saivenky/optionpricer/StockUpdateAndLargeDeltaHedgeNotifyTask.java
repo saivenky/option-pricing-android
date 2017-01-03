@@ -3,6 +3,8 @@ package saivenky.optionpricer;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.content.Context;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.support.v4.app.NotificationCompat;
 
 import saivenky.data.Stock;
@@ -16,6 +18,9 @@ import saivenky.trading.TradeSet;
 
 public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
     private static final int NOTIFICATION_ID = 001;
+    private static final long[] VIBRATE_PATTERN = { 0, 300, 100, 300, 100, 300 };
+    private static final Uri NOTIFICATION_SOUND = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+
     private final LargeDeltaHedgeChecker largeDeltaHedgeChecker;
     private NotificationManager notificationManager;
     private final TradeSet tradeSet;
@@ -30,7 +35,9 @@ public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
         notificationBuilder = new NotificationCompat.Builder(context)
                 .setSmallIcon(R.drawable.ic_optionpricer)
                 .setContentTitle("Large Delta Position")
-                .setPriority(Notification.PRIORITY_MAX);
+                .setPriority(Notification.PRIORITY_MAX)
+                .setVibrate(VIBRATE_PATTERN)
+                .setSound(NOTIFICATION_SOUND);
     }
 
     @Override
@@ -43,19 +50,14 @@ public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
             Stock.DEFAULT.getData();
         }
 
-        DeltaHedgeResult result = largeDeltaHedgeChecker.check(tradeSet);
+        DeltaHedgeResult result = largeDeltaHedgeChecker.check(tradeSet, Stock.DEFAULT.regularMarketPrice);
         if(result.isHedgeNeeded) {
-            String message = createNotificationMessage(result);
+            String message = result.toString();
             notificationBuilder.setContentText(message);
             notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build());
         }
         else {
             notificationManager.cancel(NOTIFICATION_ID);
         }
-    }
-
-    private String createNotificationMessage(DeltaHedgeResult result) {
-        String message = String.format("Current delta: %.1f, Hedge needed", result.currentDelta);
-        return message;
     }
 }

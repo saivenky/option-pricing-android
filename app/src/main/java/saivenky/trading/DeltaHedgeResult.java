@@ -6,5 +6,14 @@ package saivenky.trading;
 
 public class DeltaHedgeResult {
     public boolean isHedgeNeeded;
-    public double currentDelta;
+    public boolean isCurrent;
+    public double delta;
+    public double price;
+
+    @Override
+    public String toString() {
+        if (!isHedgeNeeded) return "No hedge needed";
+        String formatString = isCurrent ? "Current: deltas %.1f @ $%.2f" : "Needed soon: deltas %.1f @ $%.2f";
+        return String.format(formatString, delta, price);
+    }
 }
