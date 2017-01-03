@@ -52,7 +52,7 @@ public class Stock {
 
     public void getData() {
         StringBuilder sb = getRaw();
-        if(sb.length() < 0) {
+        if(sb.length() == 0) {
             System.err.println("No data received for stock");
             return;
         }
