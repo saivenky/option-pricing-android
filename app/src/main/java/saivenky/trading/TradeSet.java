@@ -15,12 +15,14 @@ import saivenky.pricing.Theo;
 
 public class TradeSet {
     List<OptionTrade> optionTrades;
-    List<StockTrade> stockTrades;
+    StockTrade stockTrade;
+    double cash;
     TreeSet<Double> importantPrices;
 
     public TradeSet() {
         optionTrades = new ArrayList<>();
-        stockTrades = new ArrayList<>();
+        stockTrade = new StockTrade();
+        cash = 0;
         importantPrices = new TreeSet<>();
     }
 
@@ -37,12 +39,25 @@ public class TradeSet {
     }
 
     void addStockTrade(StockTrade trade) {
-        importantPrices.add(trade.getStrike());
-        stockTrades.add(trade);
+        importantPrices.remove(stockTrade.getStrike());
+
+        double totalValue = stockTrade.getValue(0) + trade.getValue(0);
+        int totalQuantity = stockTrade.quantity + trade.quantity;
+        if (totalQuantity == 0) {
+            cash += totalValue;
+            stockTrade.price = 0;
+            stockTrade.quantity = 0;
+        }
+        else {
+            stockTrade.price = -totalValue / totalQuantity;
+            stockTrade.quantity = totalQuantity;
+            importantPrices.add(stockTrade.getStrike());
+        }
     }
 
+
     public boolean isEmpty() {
-        return optionTrades.isEmpty() && stockTrades.isEmpty();
+        return optionTrades.isEmpty() && stockTrade.quantity == 0;
     }
 
     public void clearTrades() {
@@ -50,7 +65,9 @@ public class TradeSet {
             OptionChainRetriever.DEFAULT.removeExpiry(optionTrade.expiry);
         }
         optionTrades.clear();
-        stockTrades.clear();
+        stockTrade.quantity = 0;
+        stockTrade.price = 0;
+        cash = 0;
         importantPrices.clear();
     }
 
@@ -59,9 +76,8 @@ public class TradeSet {
         for(OptionTrade trade : optionTrades) {
             pnl += trade.getPnL(underlying);
         }
-        for(StockTrade trade : stockTrades) {
-            pnl += trade.getPnL(underlying);
-        }
+        pnl += stockTrade.getPnL(underlying);
+        pnl += cash;
         return pnl;
     }
 
@@ -95,7 +111,8 @@ public class TradeSet {
 
     public Map<Double, Double> getPriceToPnl() {
         TreeMap<Double, Double> priceToPnl = new TreeMap<>();
-        if (optionTrades.isEmpty() && stockTrades.isEmpty()) {
+        if (optionTrades.isEmpty() && stockTrade.quantity == 0) {
+            priceToPnl.put(0., cash);
             return priceToPnl;
         }
 
@@ -151,10 +168,8 @@ public class TradeSet {
             totalTheo.add(theo);
         }
 
-        for(StockTrade stockTrade : stockTrades) {
-            Theo theo = stockTrade.getTheo(underlying, 0);
-            totalTheo.add(theo);
-        }
+        Theo stockTheo = stockTrade.getTheo(underlying, 0);
+        totalTheo.add(stockTheo);
 
         return totalTheo;
     }
