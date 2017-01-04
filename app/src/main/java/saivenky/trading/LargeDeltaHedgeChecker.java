@@ -26,7 +26,7 @@ public class LargeDeltaHedgeChecker {
         result.isHedgeNeeded = Math.abs(theo.delta) >= LARGE_DELTA;
         result.isCurrent = true;
         result.delta = theo.delta;
-        result.delta = underlying;
+        result.price = underlying;
 
         return result;
     }
