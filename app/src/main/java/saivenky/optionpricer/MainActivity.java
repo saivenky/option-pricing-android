@@ -1,8 +1,12 @@
 package saivenky.optionpricer;
 
 import android.app.NotificationManager;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -10,6 +14,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import java.io.StringReader;
+import java.util.Map;
 
 import saivenky.data.OptionChainRetriever;
 import saivenky.data.Stock;
@@ -18,13 +23,19 @@ import saivenky.trading.StockTrade;
 import saivenky.trading.TradeSet;
 import saivenky.trading.TradeSetReader;
 
-public class MainActivity extends AppCompatActivity {
+import static saivenky.pricing.IPricer.TRADING_DAYS;
+
+public class MainActivity extends AppCompatActivity implements IDisplayUpdateNotifier {
     private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 180000;
     private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 5000;
     private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_SLOW_INTERVAL_MILLIS = 60000;
 
     private static final long OPTION_CHAIN_VALIDITY_MILLIS = OPTION_CHAIN_LOOP_INTERVAL_MILLIS / 2;
     private static final long STOCK_VALIDITY_MILLIS = 5000;
+
+    private static final String SHARED_PREFERENCES_TRADES_KEY = BuildConfig.APPLICATION_ID + ".MainActivity.trades";
+
+    private Handler uiHandler = new Handler(Looper.getMainLooper());
 
     private EditText mUnderlying;
     private EditText mTrades;
@@ -33,14 +44,41 @@ public class MainActivity extends AppCompatActivity {
     private Button mQuoteButton;
     private Button mHedgeButton;
     private Button mUpdatesButton;
+
+    private EditText mCurrentUnderlying;
+    private EditText mCurrentPnl;
+    private EditText mClosePnl;
+    private EditText mCurrentPrice;
+    private EditText mCurrentDelta;
+    private EditText mCurrentGamma;
+    private EditText mCurrentVega;
+    private EditText mCurrentTheta;
+
     private boolean isFastUpdating;
 
     private WorkerThread workerThread;
-
     LoopingTask optionChainDataUpdateLoopingTask;
     LoopingTask largeDeltaHedgeNotifyLoopingTask;
 
     private TradeSet tradeSet;
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        saveTradesText();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        saveTradesText();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        saveTradesText();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,15 +115,26 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        mCurrentUnderlying = (EditText) findViewById(R.id.current_underlying);
+        mCurrentPnl = (EditText) findViewById(R.id.current_pnl);
+        mClosePnl = (EditText) findViewById(R.id.current_close_pnl);
+        mCurrentPrice = (EditText) findViewById(R.id.current_price);
+        mCurrentDelta = (EditText) findViewById(R.id.current_delta);
+        mCurrentGamma = (EditText) findViewById(R.id.current_gamma);
+        mCurrentVega = (EditText) findViewById(R.id.current_vega);
+        mCurrentTheta = (EditText) findViewById(R.id.current_theta);
+
+        loadTradesText();
+
         tradeSet = new TradeSet();
         workerThread = new WorkerThread();
         workerThread.start();
 
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
-        OptionChainUpdateTask optionChainUpdateTask = new OptionChainUpdateTask(OPTION_CHAIN_VALIDITY_MILLIS);
+        OptionChainUpdateTask optionChainUpdateTask = new OptionChainUpdateTask(OPTION_CHAIN_VALIDITY_MILLIS, this);
         optionChainDataUpdateLoopingTask = new LoopingTask(workerThread.getHandler(), optionChainUpdateTask, OPTION_CHAIN_LOOP_INTERVAL_MILLIS);
-        StockUpdateAndLargeDeltaHedgeNotifyTask deltaHedgeTask = new StockUpdateAndLargeDeltaHedgeNotifyTask(notificationManager, this, tradeSet, STOCK_VALIDITY_MILLIS);
+        StockUpdateAndLargeDeltaHedgeNotifyTask deltaHedgeTask = new StockUpdateAndLargeDeltaHedgeNotifyTask(notificationManager, this, tradeSet, STOCK_VALIDITY_MILLIS, this);
         largeDeltaHedgeNotifyLoopingTask = new LoopingTask(workerThread.getHandler(), deltaHedgeTask, STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS);
 
         optionChainDataUpdateLoopingTask.start();
@@ -183,7 +232,10 @@ public class MainActivity extends AppCompatActivity {
                     }
                     PnlAndTheoResult result = new PnlAndTheoResult();
                     result.priceToPnlDescription = tradeSet.describePnL();
-                    result.theoDescription = tradeSet.describeTheo(underlyingPrice);
+                    result.currentUnderlying = underlyingPrice;
+                    result.currentPnl = tradeSet.getPnl(underlyingPrice);
+                    result.currentClosePnl = tradeSet.getClosePnl(underlyingPrice);
+                    result.currentTheo = tradeSet.getTheo(underlyingPrice);
                     largeDeltaHedgeNotifyLoopingTask.start();
 
                     return result;
@@ -191,7 +243,6 @@ public class MainActivity extends AppCompatActivity {
                 catch (Exception e) {
                     PnlAndTheoResult result = new PnlAndTheoResult();
                     result.priceToPnlDescription = "Error reading trades and calculating PnL";
-                    result.theoDescription = e.getMessage();
                     e.printStackTrace();
                     return result;
                 }
@@ -199,7 +250,11 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             protected void onPostExecute(PnlAndTheoResult result) {
-                mPnlView.setText(result.priceToPnlDescription + "\n" + result.theoDescription);
+                mPnlView.setText(result.priceToPnlDescription);
+                updateManualStockPrice(result.currentUnderlying);
+                updateManualCurrentPnl(result.currentPnl);
+                updateManualClosePnl(result.currentClosePnl);
+                updateManualTotalTheo(result.currentTheo);
             }
         };
 
@@ -207,9 +262,130 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    void loadTradesText() {
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        mTrades.setText(sharedPref.getString(SHARED_PREFERENCES_TRADES_KEY, ""));
+    }
+
+    void saveTradesText() {
+        SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putString(SHARED_PREFERENCES_TRADES_KEY, mTrades.getText().toString());
+        editor.commit();
+    }
+
+    boolean hasManualUnderlyingPrice() {
+        String underlyingText = mUnderlying.getText().toString();
+        return underlyingText != null && !underlyingText.isEmpty();
+    }
+
+    @Override
+    public void updateStockPrice(double underlying) {
+        if(hasManualUnderlyingPrice()) return;
+        updateManualStockPrice(underlying);
+    }
+
+    void updateManualStockPrice(double underlying) {
+        mCurrentUnderlying.setText(String.format("%.2f", underlying));
+    }
+
+    @Override
+    public void updateTotalTheo(Theo totalTheo) {
+        if(hasManualUnderlyingPrice()) return;
+        updateManualTotalTheo(totalTheo);
+    }
+
+    public void updateManualTotalTheo(Theo totalTheo) {
+        if(totalTheo == null) return;
+        mCurrentPrice.setText(String.format("%.2f", totalTheo.price));
+        mCurrentDelta.setText(String.format("%.1f", totalTheo.delta));
+        mCurrentGamma.setText(String.format("%.3f", totalTheo.gamma / 100)); // delta change per 0.01 spot change
+        mCurrentVega.setText(String.format("%.2f", totalTheo.vega / 100)); // $ change per 1% change in vol
+        mCurrentTheta.setText(String.format("%.2f", totalTheo.theta / TRADING_DAYS)); // $ change per 1 trading day
+    }
+
+    @Override
+    public void updateCurrentPnl(double pnl) {
+        if(hasManualUnderlyingPrice()) return;
+        updateManualCurrentPnl(pnl);
+    }
+
+    @Override
+    public void updateClosePnl(double pnl) {
+        if(hasManualUnderlyingPrice()) return;
+        updateManualClosePnl(pnl);
+    }
+
+    private void updateManualClosePnl(double pnl) {
+        mClosePnl.setText(String.format("%.2f", pnl));
+    }
+
+    public void updateManualCurrentPnl(double pnl) {
+        mCurrentPnl.setText(String.format("%.2f", pnl));
+    }
+
+    @Override
+    public void updatePnl(Map<Double, Double> priceToPnl) {
+        if(hasManualUnderlyingPrice()) return;
+        updateManualPnl(priceToPnl);
+    }
+
+    public void updateManualPnl(Map<Double, Double> priceToPnl) {
+    }
+
     private class PnlAndTheoResult {
         String priceToPnlDescription;
-        String theoDescription;
+        double currentPnl;
+        double currentClosePnl;
+        double currentUnderlying;
+        Theo currentTheo;
+    }
+
+    public void updateStockPriceOnUi(final double underlying) {
+        uiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                updateStockPrice(underlying);
+            }
+        });
+    }
+
+    public void updateTotalTheoOnUi(final Theo totalTheo) {
+        uiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                updateTotalTheo(totalTheo);
+            }
+        });
+    }
+
+    @Override
+    public void updateCurrentPnlOnUi(final double pnl) {
+        uiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                updateCurrentPnl(pnl);
+            }
+        });
+    }
+
+    @Override
+    public void updateClosePnlOnUi(final double pnl) {
+        uiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                updateClosePnl(pnl);
+            }
+        });
+    }
+
+    public void updatePnlOnUi(final Map<Double, Double> priceToPnl) {
+        uiHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                updatePnl(priceToPnl);
+            }
+        });
     }
 }
 

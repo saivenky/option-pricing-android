@@ -1,6 +1,7 @@
 package saivenky.optionpricer;
 
 import saivenky.data.OptionChainRetriever;
+import saivenky.data.Stock;
 
 /**
  * Created by saivenky on 1/1/17.
@@ -9,10 +10,12 @@ import saivenky.data.OptionChainRetriever;
 public class OptionChainUpdateTask implements Runnable {
 
     private long validityTimeMillis;
+    private IDisplayUpdateNotifier displayUpdateNotifier;
 
-    public OptionChainUpdateTask(long validityTimeMillis) {
+    public OptionChainUpdateTask(long validityTimeMillis, IDisplayUpdateNotifier displayUpdateNotifier) {
 
         this.validityTimeMillis = validityTimeMillis;
+        this.displayUpdateNotifier = displayUpdateNotifier;
     }
 
     @Override
@@ -24,5 +27,6 @@ public class OptionChainUpdateTask implements Runnable {
         }
 
         OptionChainRetriever.DEFAULT.retrieveDataForAll();
+        this.displayUpdateNotifier.updateStockPriceOnUi(Stock.DEFAULT.regularMarketPrice);
     }
 }

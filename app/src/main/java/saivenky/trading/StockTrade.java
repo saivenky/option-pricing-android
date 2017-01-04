@@ -18,6 +18,11 @@ public class StockTrade implements ITrade {
     }
 
     @Override
+    public double getClosePnl(double underlying, double closePrice) {
+        return getPnL(underlying);
+    }
+
+    @Override
     public double getStrike() {
         return price;
     }

@@ -55,6 +55,113 @@
                 android:layout_weight="1"
                 android:text="Slower"/>
         </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_underlying"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="Spot"/>
+            </android.support.design.widget.TextInputLayout>
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_pnl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="PnL"/>
+            </android.support.design.widget.TextInputLayout>
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_price"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="Value"/>
+            </android.support.design.widget.TextInputLayout>
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_close_pnl"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="Close PnL"/>
+            </android.support.design.widget.TextInputLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_delta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="Delta"/>
+            </android.support.design.widget.TextInputLayout>
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_gamma"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="Gamma"/>
+            </android.support.design.widget.TextInputLayout>
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_vega"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="Vega"/>
+            </android.support.design.widget.TextInputLayout>
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/current_theta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:editable="false"
+                    android:inputType="none"
+                    android:hint="Theta"/>
+            </android.support.design.widget.TextInputLayout>
+        </LinearLayout>
+
         <TextView
             android:id="@+id/pnl_view"
             android:layout_width="match_parent"
@@ -67,6 +174,7 @@
             android:gravity="top"
             android:inputType="textMultiLine|textNoSuggestions|textCapCharacters"
             android:minLines="10"
-            android:background="#f0f0f0" />
+            android:background="#f0f0f0"
+            android:fontFamily="monospace"/>
     </LinearLayout>
 </ScrollView>

@@ -40,30 +40,65 @@ public class OptionTrade implements ITrade {
         return price + sign*tradesCost;
     }
 
-    public double getValue(double underlying) {
+    double getIntrinsicPrice(double underlying) {
         double value = underlying - strike;
         double sign = (isCall) ? 1 : -1;
-        return Math.max(0, sign * value * getTotalQuantity());
+        return Math.max(0, sign * value);
+    }
+    public double getValue(double underlying) {
+        return getIntrinsicPrice(underlying) * getTotalQuantity();
     }
 
-    private double getExecutionCost(double underlying) {
-        if(isCall) {
-            if(isBuy && underlying >= strike) {
-                return EA_COST;
+    //0=EXPIRE, 1=EA, 2=CLOSE
+    private static final int EXPIRE = 0;
+    private static final int EA = 1;
+    private static final int CLOSE = 2;
+
+    private class ActionAndValue {
+        int action;
+        double value;
+    }
+
+    //TODO: Simplify this. Too complicated to figure out what happens on closing
+    ActionAndValue getClosingActionAndValue(double underlying, double closePrice) {
+        if(!isBuy) {
+            if((isCall &&  underlying < strike) || (!isCall && underlying > strike)) {
+                ActionAndValue actionAndValue = new ActionAndValue();
+                actionAndValue.action = EXPIRE;
+                actionAndValue.value = 0;
             }
-            if(!isBuy && underlying >= strike) {
-                return EA_COST;
+
+
+            ActionAndValue bestActionAndValue = new ActionAndValue();
+            bestActionAndValue.value = -closePrice * getTotalQuantity() - EA_COST;
+            bestActionAndValue.action = EA;
+
+            double closeValue = -closePrice * getTotalQuantity() - getTradeCost();
+            if(closeValue > bestActionAndValue.value) {
+                bestActionAndValue.value = closeValue;
+                bestActionAndValue.action = CLOSE;
             }
+
+            return bestActionAndValue;
         }
-        if(!isCall) {
-            if(isBuy && underlying <= strike) {
-                return EA_COST;
-            }
-            if(!isBuy && underlying <= strike) {
-                return EA_COST;
-            }
+
+        ActionAndValue bestActionAndValue = new ActionAndValue();
+        bestActionAndValue.value = 0;
+        bestActionAndValue.action = EXPIRE;
+
+        double eaValue = (isCall ? (underlying - strike) : (strike - underlying)) - EA_COST;
+        if(eaValue > bestActionAndValue.value) {
+            bestActionAndValue.value = eaValue;
+            bestActionAndValue.action = EA;
         }
-        return 0;
+
+        double closeValue = closePrice * getTotalQuantity() - getTradeCost();
+        if(closeValue > bestActionAndValue.value) {
+            bestActionAndValue.value = closeValue;
+            bestActionAndValue.action = CLOSE;
+        }
+
+        return bestActionAndValue;
     }
 
     double getInitialPnL() {
@@ -74,7 +109,18 @@ public class OptionTrade implements ITrade {
 
     public double getPnL(double underlying) {
         double sign = isBuy ? 1 : -1;
-        return getInitialPnL() + sign*getValue(underlying) - getExecutionCost(underlying);
+
+        ActionAndValue bestActionAndValue = getClosingActionAndValue(underlying, getIntrinsicPrice(underlying));
+        double closingCost = 0;
+        if(bestActionAndValue.action == EA) closingCost = EA_COST;
+        else if(bestActionAndValue.action == CLOSE) closingCost = getTradeCost();
+
+        return getInitialPnL() + sign * getValue(underlying) - closingCost;
+    }
+
+    public double getClosePnl(double underlying, double closePrice) {
+        ActionAndValue bestActionAndValue = getClosingActionAndValue(underlying, closePrice);
+        return getInitialPnL() + bestActionAndValue.value;
     }
 
     @Override

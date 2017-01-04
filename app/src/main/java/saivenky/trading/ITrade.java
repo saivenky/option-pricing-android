@@ -6,6 +6,7 @@ public interface ITrade {
     double MAX_UNDERLYING = 100000;
     double getValue(double underlying);
     double getPnL(double underlying);
+    double getClosePnl(double underlying, double closePrice);
     double getStrike();
     double getBreakevenUnderlyingPrice();
     String fullDescription();

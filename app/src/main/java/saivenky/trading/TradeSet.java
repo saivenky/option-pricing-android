@@ -11,6 +11,8 @@ import saivenky.data.Option;
 import saivenky.data.OptionChain;
 import saivenky.data.OptionChainRetriever;
 import saivenky.data.Stock;
+import saivenky.pricing.BlackScholesPricer;
+import saivenky.pricing.IPricer;
 import saivenky.pricing.Theo;
 
 public class TradeSet {
@@ -71,7 +73,7 @@ public class TradeSet {
         importantPrices.clear();
     }
 
-    double getPnl(double underlying) {
+    public double getPnl(double underlying) {
         double pnl = 0.0;
         for(OptionTrade trade : optionTrades) {
             pnl += trade.getPnL(underlying);
@@ -116,10 +118,7 @@ public class TradeSet {
             return priceToPnl;
         }
 
-        double minimum = importantPrices.first();
         double maximum = importantPrices.last();
-        double range = maximum - minimum;
-        double belowAboveRange = 0.1 * range;
         double belowMin = 0;
         double aboveMax = Math.round(2 * maximum / 100) * 100;
 
@@ -174,8 +173,37 @@ public class TradeSet {
         return totalTheo;
     }
 
+    //TODO: Simplify this. Too many theo calculations
+    public double getClosePnl(double underlying) {
+        double pnl = 0.0;
+        for(OptionTrade optionTrade : optionTrades) {
+            double theoPrice;
+            OptionChain optionChain = OptionChainRetriever.DEFAULT.getOptionChain(optionTrade.expiry);
+            if (optionChain.isExpired) {
+                theoPrice = optionTrade.isCall ? Math.max(0, underlying - optionTrade.strike) : Math.max(0, optionTrade.strike - underlying);
+            }
+            else {
+                Option option = optionChain.getOption(optionTrade.isCall, optionTrade.strike);
+                double timeToExpiry = IPricer.timeToExpiry(optionTrade.expiry);
+                Theo theo = BlackScholesPricer.DEFAULT.getTheo(optionTrade.isCall, underlying, optionTrade.strike, timeToExpiry, option.calculatedImpliedVol);
+                theoPrice = theo.price;
+            }
+
+            pnl += optionTrade.getClosePnl(underlying, theoPrice);
+        }
+
+        Theo stockTheo = stockTrade.getTheo(underlying, 0);
+        pnl += stockTrade.getClosePnl(underlying, stockTheo.price);
+        pnl += cash;
+        return pnl;
+    }
+
     public String describeTheo(double underlying) {
         Theo totalTheo = getTheo(underlying);
+        return describeTheo(totalTheo, underlying);
+    }
+
+    public String describeTheo(Theo totalTheo, double underlying) {
         return totalTheo.prettyString() +
                 String.format("\nCurrent Underlying: %.2f\nCurrent PnL: %.2f\n", underlying, getPnl(underlying));
     }

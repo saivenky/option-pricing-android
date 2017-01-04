@@ -6,8 +6,7 @@ public class LargeDeltaHedgeChecker {
     public static double LARGE_DELTA = 20;
     private static final double PRICE_CHANGE = 0.05;
 
-    public DeltaHedgeResult check(TradeSet trades, double underlying) {
-        Theo theo = trades.getTheo(underlying);
+    public DeltaHedgeResult check(Theo theo, double underlying) {
         if (Math.abs(theo.delta) < LARGE_DELTA) {
             double goalDelta = (theo.delta < 0) ? -LARGE_DELTA : LARGE_DELTA;
             double changeNeededBeforeHedge = (goalDelta - theo.delta) / theo.gamma;
