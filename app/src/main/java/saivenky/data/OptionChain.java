@@ -52,7 +52,14 @@ public class OptionChain {
                 sb.append(line);
             }
         }
-        catch(IOException e) {}
+        catch(IOException e) {
+            System.err.printf("Error downloading raw data %s: %s\n", expiry, e.getMessage());
+        }
+
+        if (sb.length() == 0) {
+            System.err.printf("No options data received %s\n", expiry);
+        }
+
         return sb;
     }
 
@@ -112,6 +119,11 @@ public class OptionChain {
 
     public Option getOption(boolean isCall, double strike) {
         Option[] options = isCall ? calls : puts;
+        if (options == null) {
+            System.err.printf("No option data (isCall: %s)\n", isCall);
+            return null;
+        }
+
         for(int i = 0; i < options.length; i++) {
             if(isCloseTo(options[i].strike, strike)) return options[i];
         }
