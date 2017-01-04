@@ -40,8 +40,13 @@ public class Option {
     }
 
     double getPrice() {
-        //return lastPrice;
+        if (closeTo(bid, 0) && closeTo(ask, 0)) return lastPrice;
         return (bid + ask) / 2;
+    }
+
+    static final double PRECISION = 1e-6;
+    boolean closeTo(double a, double b) {
+        return Math.abs(a-b) < PRECISION;
     }
 
     @Override
