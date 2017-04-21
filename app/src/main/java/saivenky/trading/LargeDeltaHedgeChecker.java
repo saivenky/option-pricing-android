@@ -3,8 +3,8 @@ package saivenky.trading;
 import saivenky.pricing.Theo;
 
 public class LargeDeltaHedgeChecker {
-    public static double LARGE_DELTA = 20;
-    private static final double PRICE_CHANGE = 0.05;
+    public static double LARGE_DELTA = 15;
+    private static final double PRICE_CHANGE = 0.04;
 
     public DeltaHedgeResult check(Theo theo, double underlying) {
         if (Math.abs(theo.delta) < LARGE_DELTA) {

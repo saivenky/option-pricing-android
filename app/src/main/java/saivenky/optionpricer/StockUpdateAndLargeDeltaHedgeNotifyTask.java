@@ -24,7 +24,6 @@ public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
     private static final Uri NOTIFICATION_SOUND = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
 
     private final LargeDeltaHedgeChecker largeDeltaHedgeChecker;
-    private final Handler uiHandler;
     private NotificationManager notificationManager;
     private final TradeSet tradeSet;
     private NotificationCompat.Builder notificationBuilder;
@@ -35,7 +34,6 @@ public class StockUpdateAndLargeDeltaHedgeNotifyTask implements Runnable {
             NotificationManager notificationManager, Context context, TradeSet tradeSet, long validityTimeMillis, IDisplayUpdateNotifier displayUpdateNotifier) {
         this.displayUpdateNotifier = displayUpdateNotifier;
         this.largeDeltaHedgeChecker = new LargeDeltaHedgeChecker();
-        this.uiHandler = new Handler(context.getMainLooper());
         this.notificationManager = notificationManager;
         this.tradeSet = tradeSet;
         this.validityTimeMillis = validityTimeMillis;

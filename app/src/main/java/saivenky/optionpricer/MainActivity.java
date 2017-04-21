@@ -26,12 +26,15 @@ import saivenky.trading.TradeSetReader;
 import static saivenky.pricing.IPricer.TRADING_DAYS;
 
 public class MainActivity extends AppCompatActivity implements IDisplayUpdateNotifier {
-    private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 180000;
+    private static final long OPTION_CHAIN_LOOP_INTERVAL_MILLIS = 15000;
+    private static final long OPTION_CHAIN_LOOP_SLOW_INTERVAL_MILLIS = 240000;
     private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS = 5000;
     private static final long STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_SLOW_INTERVAL_MILLIS = 60000;
 
-    private static final long OPTION_CHAIN_VALIDITY_MILLIS = OPTION_CHAIN_LOOP_INTERVAL_MILLIS / 2;
+    private static final long OPTION_CHAIN_VALIDITY_MILLIS = 10000;
     private static final long STOCK_VALIDITY_MILLIS = 5000;
+
+    private static int DELTA_HEDGE_ROUNDING = 10;
 
     private static final String SHARED_PREFERENCES_TRADES_KEY = BuildConfig.APPLICATION_ID + ".MainActivity.trades";
 
@@ -145,14 +148,22 @@ public class MainActivity extends AppCompatActivity implements IDisplayUpdateNot
             public void onClick(View view) {
                 isFastUpdating = !isFastUpdating;
                 if(isFastUpdating) {
+                    optionChainDataUpdateLoopingTask.updateInterval(OPTION_CHAIN_LOOP_INTERVAL_MILLIS);
                     largeDeltaHedgeNotifyLoopingTask.updateInterval(STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_INTERVAL_MILLIS);
                 }
                 else {
+                    optionChainDataUpdateLoopingTask.updateInterval(OPTION_CHAIN_LOOP_SLOW_INTERVAL_MILLIS);
                     largeDeltaHedgeNotifyLoopingTask.updateInterval(STOCK_UPDATE_AND_LARGE_HEDGE_NOTIFY_LOOP_SLOW_INTERVAL_MILLIS);
                 }
                 mUpdatesButton.setText(isFastUpdating ? "Slower" : "Faster");
             }
         });
+    }
+
+    private static int deltaRoundingAmount(double delta) {
+        double deltaSize = Math.abs(delta);
+        if (deltaSize > DELTA_HEDGE_ROUNDING) return DELTA_HEDGE_ROUNDING;
+        return 1;
     }
 
     private void addHedge() {
@@ -168,12 +179,12 @@ public class MainActivity extends AppCompatActivity implements IDisplayUpdateNot
         }
 
         Theo theo = tradeSet.getTheo(underlyingPrice);
-        StockTrade stockTrade = StockTrade.createHedgeTrade(theo, underlyingPrice, DELTA_HEDGE_ROUNDING);
+
+        StockTrade stockTrade = StockTrade.createHedgeTrade(theo, underlyingPrice, deltaRoundingAmount(theo.delta));
         tradeSet.addTrade(stockTrade);
         mTrades.setText(mTrades.getText() + "\n" + stockTrade.toString());
     }
 
-    private static int DELTA_HEDGE_ROUNDING = 10;
 
     private void getQuotesForOptions() {
         final String tradesText = mTrades.getText().toString();
@@ -264,7 +275,9 @@ public class MainActivity extends AppCompatActivity implements IDisplayUpdateNot
 
     void loadTradesText() {
         SharedPreferences sharedPref = this.getPreferences(Context.MODE_PRIVATE);
-        mTrades.setText(sharedPref.getString(SHARED_PREFERENCES_TRADES_KEY, ""));
+        String trades = sharedPref.getString(SHARED_PREFERENCES_TRADES_KEY, "");
+        System.out.println(trades);
+        mTrades.setText(trades);
     }
 
     void saveTradesText() {
@@ -297,7 +310,7 @@ public class MainActivity extends AppCompatActivity implements IDisplayUpdateNot
 
     public void updateManualTotalTheo(Theo totalTheo) {
         if(totalTheo == null) return;
-        mCurrentPrice.setText(String.format("%.2f", totalTheo.price));
+        mCurrentPrice.setText(String.format("%.1f", totalTheo.price));
         mCurrentDelta.setText(String.format("%.1f", totalTheo.delta));
         mCurrentGamma.setText(String.format("%.3f", totalTheo.gamma / 100)); // delta change per 0.01 spot change
         mCurrentVega.setText(String.format("%.2f", totalTheo.vega / 100)); // $ change per 1% change in vol
@@ -321,7 +334,7 @@ public class MainActivity extends AppCompatActivity implements IDisplayUpdateNot
     }
 
     public void updateManualCurrentPnl(double pnl) {
-        mCurrentPnl.setText(String.format("%.2f", pnl));
+        mCurrentPnl.setText(String.format("%.1f", pnl));
     }
 
     @Override

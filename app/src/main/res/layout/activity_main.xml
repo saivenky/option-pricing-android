@@ -17,25 +17,6 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
-            <EditText
-                android:id="@+id/underlying"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="5"
-                android:inputType="numberDecimal"/>
-
-            <Button
-                android:id="@+id/pnl_button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="P/L"/>
-            </LinearLayout>
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
             <Button
                 android:id="@+id/quote_button"
                 android:layout_width="wrap_content"
@@ -54,11 +35,28 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Slower"/>
+            <Button
+                android:id="@+id/pnl_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="P/L"/>
         </LinearLayout>
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
+            <android.support.design.widget.TextInputLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
+                <android.support.design.widget.TextInputEditText
+                    android:id="@+id/underlying"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:hint="Manual Spot"
+                    android:inputType="numberDecimal"/>
+            </android.support.design.widget.TextInputLayout>
             <android.support.design.widget.TextInputLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
